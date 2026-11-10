@@ -67,6 +67,7 @@ class DesktopContract(unittest.TestCase):
     def test_details_layout_prioritizes_log_output(self):
         drawer = (ROOT / "src/components/console/ConsoleDrawer.qml").read_text()
         self.assertIn("contentItem: ColumnLayout", drawer)
+        self.assertIn('text: i18n("Console Output")', drawer)
         self.assertNotIn("closeBtn", drawer)
         self.assertNotIn("columnAdditional", drawer)
         page = (ROOT / "src/pages/system_update/SystemUpdate.qml").read_text()

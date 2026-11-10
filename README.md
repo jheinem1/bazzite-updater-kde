@@ -36,7 +36,7 @@ cmake --build build
 
 The controller dependency is pinned to the upstream submodule commit. `_USE_XDG_CONFIG=ON` stages configuration below the chosen prefix; it does not authorize replacing the host's system configuration. Normal application startup still prefers the distribution's trusted `/etc` and `/usr/etc` configuration.
 
-The fork identifies itself as `1.2.1-kde.2` while retaining upstream numeric build version `1.2.1`. It preserves the `bazzite-updater` executable, application ID, translation domain, and system-configuration paths for downstream compatibility. Do not install it alongside an overlapping upstream package without an explicit packaging/rollback plan. No new stable release, desktop installation, or james-os integration is implied by a successful source build.
+The fork identifies itself as `1.2.1-kde.3` while retaining upstream numeric build version `1.2.1`. It preserves the `bazzite-updater` executable, application ID, translation domain, and system-configuration paths for downstream compatibility. Do not install it alongside an overlapping upstream package without an explicit packaging/rollback plan. No new stable release, desktop installation, or james-os integration is implied by a successful source build.
 
 ## Verify
 

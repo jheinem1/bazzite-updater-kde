@@ -240,6 +240,13 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         QTest::qWait(150);
         auto *logView = qobject_cast<QQuickItem *>(named("detailsLogView"));
         auto *copyButton = qobject_cast<QQuickItem *>(named("detailsCopyButton"));
+        auto *detailsHeading = qobject_cast<QQuickItem *>(named("detailsHeading"));
+        check("details toolbar identifies console output",
+              detailsHeading && detailsHeading->isVisible() && detailsHeading->property("text").toString() == "Console Output");
+        check("console heading stays beside copy action above output",
+              detailsHeading && copyButton && logView &&
+                  detailsHeading->mapToScene(QPointF(detailsHeading->width(), 0)).x() <= copyButton->mapToScene(QPointF()).x() &&
+                  detailsHeading->mapToScene(QPointF(0, detailsHeading->height())).y() <= logView->mapToScene(QPointF()).y());
         check("details log uses full panel width", logView && logView->width() >= named("updateConsole")->property("width").toDouble() - 25);
         check("copy action is above log output",
               copyButton && logView && copyButton->mapToScene(QPointF(0, copyButton->height())).y() <= logView->mapToScene(QPointF(0, 0)).y() + 2);
@@ -260,6 +267,15 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         check("F12 reopens details after controller close", named("updateConsole")->property("drawerOpen").toBool());
 
         screenshot("details");
+        window->resize(840, 600);
+        QTest::qWait(200);
+        check("console heading and copy fit narrow panel",
+              detailsHeading && !detailsHeading->property("truncated").toBool() && copyButton &&
+                  detailsHeading->mapToScene(QPointF(detailsHeading->width(), 0)).x() <= copyButton->mapToScene(QPointF()).x() &&
+                  copyButton->mapToScene(QPointF(copyButton->width(), 0)).x() <= window->width() + 1);
+        screenshot("details-narrow");
+        window->resize(1080, 720);
+        QTest::qWait(200);
         QTest::keyClick(window, Qt::Key_Escape);
         QTest::qWait(350);
         check("Escape closes details", !named("updateConsole")->property("drawerOpen").toBool());

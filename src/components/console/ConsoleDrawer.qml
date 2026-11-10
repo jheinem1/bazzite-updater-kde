@@ -44,7 +44,16 @@ Kirigami.OverlayDrawer {
             Layout.fillWidth: true
             RowLayout {
                 anchors.fill: parent
-                Item { Layout.fillWidth: true }
+                Kirigami.Heading {
+                    id: heading
+                    objectName: "detailsHeading"
+                    text: i18n("Console Output")
+                    level: 4
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                    Layout.leftMargin: Kirigami.Units.smallSpacing
+                    Accessible.name: text
+                }
                 ToolButton {
                     id: copy
                     objectName: "detailsCopyButton"
