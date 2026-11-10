@@ -5,11 +5,11 @@ import io.github.rfrench3.controllable as GP
 
 FormCard.AboutPage {
     id: page
-    title: GP.Labels.east + GP.Labels.spacer_large + i18nc("@title", "About Application")
+    title: i18nc("@title", "About Application")
 
     GP.PageNavigation {
         targetScrollbar: page.grabScrollbar(page)
-        active: !globalDrawer.drawerOpen
+        active: !globalDrawer.controllerNavigationActive
     }
 
     function grabScrollbar(item) {

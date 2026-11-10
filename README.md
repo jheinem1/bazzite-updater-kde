@@ -1,77 +1,57 @@
-<h1>Bazzite Updater</h1>
+# Bazzite Updater KDE
 
-<h2 align="center">A Graphical Frontend for the updating and rebasing tools used by Bazzite, configurable for any Linux distro!</h2>
+> **ACTIVE DEVELOPMENT.** This independent desktop-focused fork is not accepting issues, feature requests, discussions, or pull requests. This participation policy does not change any free-software license rights.
 
-![Updating Screen](screenshots/update_drawer.png)
+A KDE Kirigami frontend for Bazzite's existing update, rollback, and rebase tools, based on [rfrench3/bazzite-updater](https://github.com/rfrench3/bazzite-updater). The upstream application is already Qt/Kirigami; this fork refines its desktop interaction rather than replacing the backend.
 
-<h1 align="center">Features</h1>
+![Breeze Dark desktop preview](docs/screenshots/desktop-dark.png)
 
-<p>This is a convenient, easy-to-use interface for updating your Linux system. While primarily designed for Bazzite, it has been designed so that it can be easily integrated into any linux distro that meets its requirements. Feel free to ask if you are interested in implementing it!</p>
+## Desktop changes
 
-- Simple and powerful
-- Full support for all input types (keyboard/mouse, controller, touchscreen)
+- Always-expanded sidebar with aligned native headers.
+- Plain button and page names, even with a controller connected.
+- Separate controller navigation state, so controller support does not depend on hiding the sidebar.
+- A compact update page with one title, a clear update button, persistent status/error feedback, and Show Details / Hide Details.
+- Native KDE styling, fonts, colors, and accent during normal use.
+- Keyboard-safe actions: Return does not start an update unless its button is focused. F12 toggles details, Escape dismisses details/dialogs, Ctrl+M switches navigation focus, and Ctrl+Q uses the normal guarded quit flow.
 
-<br>
+See [desktop design](docs/DESKTOP-DESIGN.md) for rationale and verification boundaries. The original [upstream README](README-upstream.md) is retained for background, not as installation instructions for this fork.
 
-<h1 align="center">Icons</h1>
+## Build
 
-<p>The custom icons used by this app come from Bazzite.</p>
+Use a matched Qt 6 / KDE Frameworks development environment. CMake lists the required Qt, KF6, Kirigami Addons, and SDL3 versions. Do not mix arbitrary Qt wheels or SDKs with unrelated host QML modules.
 
-- https://github.com/ublue-os/bazzite/blob/main/system_files/desktop/shared/usr/share/ublue-os/bazzite/update.svg
-- https://github.com/ublue-os/bazzite/blob/main/system_files/desktop/shared/usr/share/ublue-os/bazzite/logo.svg
-
-<br>
-
-<h1 align="center">Other Linux Distributions</h1>
-
-<p>If you are a developer that wants to ship Bazzite Updater for your own distribution, I would be happy to help make that happen!</p>
-
-<br>
-
-<h1 align="center">Requirements</h1>
-
-By default, this interface is configured to use bazzite's `uupd` system service for updating and `bazzite-rollback-helper` for rolling back updates. If you do not use these systems, you will need to edit `/etc/bazzite-updater/config.ini` to match your systems.
-
-- This is not currently tested with packages older than the latest within Fedora and Arch linux.
-
-<br>
-
-<h1 align="center">Where to Install the Latest Release</h1>
-
-The app is available in [Terra](https://docs.terrapkg.com/usage/installing/). Once the installation instructions are met, the package will be available as `bazzite-updater`.
-
-```bash
-sudo dnf install bazzite-updater
+```sh
+git submodule update --init --recursive
+cmake -S . -B build -G Ninja \
+  -D_INCLUDE_SUBMODULES=ON \
+  -D_USE_XDG_CONFIG=ON \
+  -DCMAKE_INSTALL_PREFIX="$PWD/build/install-root"
+cmake --build build
 ```
 
-It is also posted to the github releases.
+The controller dependency is pinned to the upstream submodule commit. `_USE_XDG_CONFIG=ON` stages configuration below the chosen prefix; it does not authorize replacing the host's system configuration. Normal application startup still prefers the distribution's trusted `/etc` and `/usr/etc` configuration.
 
-- https://github.com/rfrench3/bazzite_updater/releases
+This initial fork preserves the `bazzite-updater` executable, application ID, translation domain, and system-configuration paths for downstream compatibility. Do not install it alongside an overlapping upstream package without an explicit packaging/rollback plan. No new stable release, desktop installation, or james-os integration is implied by a successful source build.
 
-<br>
+## Verify
 
-<h1 align="center">Configuration</h1>
-
-In `/etc/bazzite-updater`, edit `config.ini` to change your update/rollback commands and edit `KAboutData_OS.json` (if desired) to match your Linux distro. Edit `rebase-targets.json` with a list of targets you wish for users to be able to rebase to. Here is an example config.ini for Arch Linux:
-
-```config.ini
-[Commands]
-systemUpdateCommand=pkexec pacman -Syu --noconfirm
-; systemRollbackCommand=
+```sh
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+cmake -S . -B build-test -G Ninja \
+  -D_INCLUDE_SUBMODULES=ON -D_USE_XDG_CONFIG=ON \
+  -DBAZZITE_UPDATER_UI_PROBE=ON \
+  -DCMAKE_INSTALL_PREFIX="$PWD/build-test/install-root"
+cmake --build build-test
+bash tests/run-ui-probe.sh "$PWD/build-test" "$PWD/evidence"
 ```
 
-If you remove a line from the config, it will hide relevant sections of the UI or properly show that the feature is not available.
+The opt-in probe renders real Qt/Kirigami windows offscreen, checks navigation, controller-label independence, keyboard actions, dialog cancellation, disabled controls, repeated page changes, error/running states, narrow windows, and larger text. It produces JSON reports and screenshots with synthetic display data. Command execution is blocked in this build, including command-line update/rollback. **Never distribute the probe executable.** Normal builds leave `BAZZITE_UPDATER_UI_PROBE=OFF`.
 
-<p>Preferences that only affect the interface, like the reboot reminder shown on exit, are in the app's <b>Settings</b> page and get stored in <code>~/.config/bazzite-updaterrc</code>. Commands are never read from the home directory.</p>
+Source-contract tests and native UI tests are intentionally distinct from real system-update testing. Physical controllers, screen readers, RTL, Gamescope, live desktop theme changes, full backend integration, release packages, and installation remain unverified. See [verification](docs/VERIFICATION.md) for the exact tested revision and warnings.
 
-<br>
+## Contributing and licensing
 
-<h1 align="center">License</h1>
+Contributions are currently closed; see [CONTRIBUTING.md](CONTRIBUTING.md). The public repository keeps pull requests, issues, and discussions disabled, without archiving development.
 
-<p>GPL-2.0-or-later. See LICENSES for details.</p>
-
-<br>
-
-<h1 align="center">Developer Instructions</h1>
-
-I develop this project in a devcontainer with Zed and test it on bazzite by building it in a fedora distrobox and running on host. A justfile is present for specific scripts, which can be easily run using `just`.
+Upstream history, copyright notices, and licenses are preserved. Application code is generally GPL-2.0-or-later, with file-specific license choices retained. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [LICENSES](LICENSES). This is not an official Bazzite, Universal Blue, or KDE release.

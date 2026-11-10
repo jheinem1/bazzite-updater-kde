@@ -14,7 +14,7 @@ import io.github.rfrench3.controllable as GP
 FC.FormCardPage {
     id: page
 
-    title: GP.Labels.east + GP.Labels.spacer_large + i18n("Settings")
+    title: i18n("Settings")
 
     function grabScrollbar(item) {
         if (item.contentItem?.ScrollBar?.vertical)
@@ -29,7 +29,7 @@ FC.FormCardPage {
 
     GP.PageNavigation {
         targetScrollbar: page.scrollbar
-        active: !globalDrawer.drawerOpen
+        active: !globalDrawer.controllerNavigationActive
     }
 
     FC.FormHeader {

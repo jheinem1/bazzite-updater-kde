@@ -12,23 +12,26 @@ import org.kde.kirigamiaddons.statefulapp as StatefulApp
 import io.github.rfrench3.bazzite_updater
 import io.github.rfrench3.controllable as GP
 
-// NOTE: Gamepad.labels.* automatically show/hide themselves depending on the presence of a controller
+// Controller focus is independent of sidebar visibility. Desktop action labels remain plain.
 
 StatefulApp.StatefulWindow {
     id: root
 
-    title: i18nc("@title:window", "Bazzite Updater")
+    title: i18nc("@title:window", "Bazzite Updater KDE")
 
-    windowName: "Bazzite Updater"
+    windowName: "Bazzite Updater KDE"
+    objectName: "updaterWindow"
+    width: Kirigami.Units.gridUnit * 60
+    height: Kirigami.Units.gridUnit * 40
 
-    minimumWidth: Kirigami.Units.gridUnit * 20
-    minimumHeight: Kirigami.Units.gridUnit * 20
+    minimumWidth: Kirigami.Units.gridUnit * 44
+    minimumHeight: Kirigami.Units.gridUnit * 28
 
     visibility: (UseFullscreen || UserSettings.preferFullscreen) ? Window.FullScreen : Window.Windowed
 
     onClosing: close => {
         close.accepted = false;
-        actionQuit.triggered();
+        actionQuit.trigger();
     }
 
     Shortcut {
@@ -66,11 +69,11 @@ StatefulApp.StatefulWindow {
             case 4: // view, minus
             case 6: // pause, plus
                 if (button_down)
-                    globalDrawer.drawerOpen = !globalDrawer.drawerOpen;
+                    globalDrawer.controllerNavigationActive = !globalDrawer.controllerNavigationActive;
                 return;
             }
 
-            if (globalDrawer.drawerOpen) {
+            if (globalDrawer.controllerNavigationActive) {
                 globalDrawer.handleInput(buttonId, button_down);
                 return;
             }
@@ -84,6 +87,30 @@ StatefulApp.StatefulWindow {
 
     globalDrawer: Kirigami.GlobalDrawer {
         id: globalDrawer
+        objectName: "navigationSidebar"
+        header: Kirigami.AbstractApplicationHeader {
+            objectName: "navigationHeader"
+            minimumHeight: preferredHeight
+            maximumHeight: preferredHeight
+            Kirigami.Heading {
+                anchors.fill: parent
+                leftPadding: Kirigami.Units.largeSpacing
+                verticalAlignment: Text.AlignVCenter
+                level: 2
+                text: i18n("Navigation")
+            }
+        }
+        modal: false
+        drawerOpen: true
+        collapsible: false
+        collapsed: false
+        handleVisible: false
+        interactive: false
+        closePolicy: QQC2.Popup.NoAutoClose
+        resetMenuOnTriggered: false
+
+        // B / View / Menu changes controller focus without hiding navigation.
+        property bool controllerNavigationActive: false
 
         Behavior on width {
             NumberAnimation {
@@ -98,6 +125,8 @@ StatefulApp.StatefulWindow {
             font: Kirigami.Theme.defaultFont
         }
         function getMaxActionTextWidth() {
+            // Reading font explicitly makes this recompute after platform font changes.
+            const font = actionFontMetrics.font;
             let maxWidth = 0;
             for (let i = 0; i < actions.length; i++) {
                 if (actions[i].text) {
@@ -110,43 +139,50 @@ StatefulApp.StatefulWindow {
             }
             return maxWidth;
         }
-        width: getMaxActionTextWidth() + Kirigami.Units.iconSizes.medium + (Kirigami.Units.largeSpacing * 4)
+        width: Math.max(Kirigami.Units.gridUnit * 14, getMaxActionTextWidth() + Kirigami.Units.iconSizes.medium + (Kirigami.Units.largeSpacing * 4))
 
         Shortcut {
-            sequences: [StandardKey.Back, StandardKey.Close, "F1", "Ctrl+M", "Escape"]
+            sequences: ["Ctrl+M"]
+            context: Qt.ApplicationShortcut
+            enabled: !AppDialogManager.activeDialog
+            onActivated: globalDrawer.controllerNavigationActive = !globalDrawer.controllerNavigationActive
+        }
+
+        Shortcut {
+            sequence: "Escape"
             context: Qt.ApplicationShortcut
             onActivated: {
                 if (AppDialogManager.activeDialog)
                     AppDialogManager.activeDialog.reject();
+                else if (root.pageStack.currentItem.drawer?.drawerOpen)
+                    root.pageStack.currentItem.drawer.close();
                 else
-                    globalDrawer.drawerOpen = !globalDrawer.drawerOpen;
+                    globalDrawer.controllerNavigationActive = false;
             }
         }
 
         Shortcut {
-            sequences: ["Return"]
+            sequences: ["Return", "Enter"]
             context: Qt.ApplicationShortcut
-            enabled: globalDrawer.drawerOpen || AppDialogManager.activeDialog
+            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog
             onActivated: {
-                if (AppDialogManager.activeDialog) {
-                    AppDialogManager.activeDialog.accept();
-                } else
-                    globalDrawer.drawerOpen = false;
+                globalDrawer.controllerNavigationActive = false;
+                root.pageStack.currentItem.forceActiveFocus(Qt.TabFocusReason);
             }
         }
 
         Shortcut {
-            sequences: ["Up"]
+            sequence: "Up"
             context: Qt.ApplicationShortcut
-            enabled: globalDrawer.drawerOpen
-            onActivated: globalDrawer.__navigateGlobalDrawer(-1)
+            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog
+            onActivated: globalDrawer.navigatePages(-1)
         }
 
         Shortcut {
-            sequences: ["Down"]
+            sequence: "Down"
             context: Qt.ApplicationShortcut
-            enabled: globalDrawer.drawerOpen
-            onActivated: globalDrawer.__navigateGlobalDrawer(1)
+            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog
+            onActivated: globalDrawer.navigatePages(1)
         }
 
         QQC2.ActionGroup {
@@ -222,7 +258,7 @@ StatefulApp.StatefulWindow {
                 onTriggered: root.pageStack.initialPage = Qt.resolvedUrl("AboutDataOS.qml")
             },
             Kirigami.Action {
-                text: i18n("About Bazzite Updater")
+                text: i18n("About Application")
                 icon.name: "help-about-symbolic"
 
                 checkable: true
@@ -235,7 +271,7 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 id: actionReboot
-                text: i18n("Reboot System") + GP.Labels.spacer + GP.Labels.north
+                text: i18n("Reboot System")
                 icon.name: AppState.commandSucceeded ? "system-shutdown-update-symbolic" : "system-shutdown-symbolic"
 
                 enabled: !AppState.commandRunning
@@ -246,7 +282,7 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 id: actionQuit
-                text: i18n("Quit") + GP.Labels.spacer + GP.Labels.west
+                text: i18n("Quit")
                 icon.name: "application-exit-symbolic"
                 shortcut: StandardKey.Quit
                 onTriggered: {
@@ -260,7 +296,7 @@ StatefulApp.StatefulWindow {
             }
         ]
 
-        function __navigateGlobalDrawer(direction) {
+        function navigatePages(direction) {
             // direction = +1 or -1, used to navigate with a controller or arrow keys
 
             // Find the current page
@@ -287,12 +323,11 @@ StatefulApp.StatefulWindow {
                     break;
             }
 
-            // The next page was found, naviagte to it
             if (newIndex !== currentIndex) {
-                if (currentIndex >= 0)
-                    globalDrawer.actions[currentIndex].checked = false;
-                globalDrawer.actions[newIndex].triggered();
-                globalDrawer.actions[newIndex].checked = true;
+                const nextAction = globalDrawer.actions[newIndex];
+                if (!nextAction?.checkable || !nextAction.visible || !nextAction.enabled)
+                    return;
+                nextAction.trigger();
             }
         }
 
@@ -302,19 +337,19 @@ StatefulApp.StatefulWindow {
 
             switch (buttonId) {
             case 0: // A
-                drawerOpen = false;
+                controllerNavigationActive = false;
                 break;
             case 2: // X
-                actionQuit.triggered();
+                actionQuit.trigger();
                 break;
             case 3: // Y
-                actionReboot.triggered();
+                actionReboot.trigger();
                 break;
             case 11: // Dpad Up
-                __navigateGlobalDrawer(-1);
+                navigatePages(-1);
                 break;
             case 12: // Dpad Down
-                __navigateGlobalDrawer(1);
+                navigatePages(1);
                 break;
             }
         }
@@ -332,13 +367,13 @@ StatefulApp.StatefulWindow {
         customFooterActions: [
             Kirigami.Action {
                 id: confirmReboot
-                text: i18n("Reboot") + GP.Labels.spacer + GP.Labels.south
+                text: i18n("Reboot")
 
                 onTriggered: rebootDialog.accept()
             },
             Kirigami.Action {
                 id: cancelReboot
-                text: i18n("Cancel") + GP.Labels.spacer + GP.Labels.east
+                text: i18n("Cancel")
                 onTriggered: rebootDialog.reject()
             }
         ]
@@ -363,10 +398,10 @@ StatefulApp.StatefulWindow {
                 return;
             switch (buttonId) {
             case 0: // A
-                confirmReboot.triggered();
+                confirmReboot.trigger();
                 break;
             case 1: // B
-                cancelReboot.triggered();
+                cancelReboot.trigger();
                 break;
             }
         }
@@ -394,7 +429,7 @@ StatefulApp.StatefulWindow {
             visible: !AppState.commandRunning
             enabled: visible
 
-            text: i18n("Do not show this again") + GP.Labels.spacer + GP.Labels.north
+            text: i18n("Do not show this again")
 
             checked: !UserSettings.showRebootReminder
 
@@ -412,14 +447,14 @@ StatefulApp.StatefulWindow {
         customFooterActions: [
             Kirigami.Action {
                 id: confirmExit
-                text: i18nc("dialog to exit the application", "Exit") + GP.Labels.spacer + GP.Labels.south
+                text: i18nc("dialog to exit the application", "Exit")
                 enabled: AppConfig.ini.Commands?.allowEarlyExit === "true" || !AppState.commandRunning
 
                 onTriggered: exitDialog.accept()
             },
             Kirigami.Action {
                 id: cancelExit
-                text: i18n("Cancel") + GP.Labels.spacer + GP.Labels.east
+                text: i18n("Cancel")
                 onTriggered: exitDialog.reject()
             }
         ]
@@ -432,10 +467,10 @@ StatefulApp.StatefulWindow {
 
             switch (buttonId) {
             case 0: // A
-                confirmExit.triggered();
+                confirmExit.trigger();
                 break;
             case 1: // B
-                cancelExit.triggered();
+                cancelExit.trigger();
                 break;
             case 3: // Y
                 if (skipRebootReminder.visible)

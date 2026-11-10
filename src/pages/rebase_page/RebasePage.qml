@@ -56,7 +56,7 @@ AppPage {
                 if (!gamepadRoot.active)
                     return;
 
-                if (globalDrawer.drawerOpen || consoleDrawer.drawerOpen)
+                if (globalDrawer.controllerNavigationActive || consoleDrawer.drawerOpen)
                     return;
 
                 let item = gamepadRoot.Window.window.activeFocusItem;
@@ -101,7 +101,7 @@ AppPage {
         if (!button_down)
             return false;
 
-        if (globalDrawer.drawerOpen || consoleDrawer.drawerOpen)
+        if (globalDrawer.controllerNavigationActive || consoleDrawer.drawerOpen)
             return false;
 
         const focused = Window.activeFocusItem;
@@ -162,13 +162,16 @@ AppPage {
             ref: `${RebaseModel.currentImage.url}/${RebaseModel.currentImage.name}`
         })
 
-    title: GP.Labels.east + GP.Labels.spacer_large + i18n("Rebase Helper")
+    title: i18n("Rebase Helper")
 
     actionToggleDrawer: toggleConsole
     actions: [
         Kirigami.Action {
             id: toggleConsole
-            text: i18n("Toggle Console") + GP.Labels.spacer + GP.Labels.north
+            text: consoleDrawer.drawerOpen ? i18n("Hide Details") : i18n("Show Details")
+            icon.name: "utilities-terminal"
+            checkable: true
+            checked: consoleDrawer.drawerOpen
             shortcut: "F12"
             onTriggered: consoleDrawer.drawerOpen = !consoleDrawer.drawerOpen
         }
@@ -176,7 +179,7 @@ AppPage {
 
     GP.ScrollHandler {
         target: page.focusedViewCard ? getScrollbar(page.focusedViewCard) : page.scrollBar
-        active: !globalDrawer.drawerOpen && !consoleDrawer.drawerOpen
+        active: !globalDrawer.controllerNavigationActive && !consoleDrawer.drawerOpen
 
         function getScrollbar(item) {
             if (!item)
@@ -332,12 +335,12 @@ AppPage {
         customFooterActions: [
             Kirigami.Action {
                 id: confirmExit
-                text: i18nc("Dialog confirmation", "Ok") + GP.Labels.spacer + GP.Labels.south
+                text: i18nc("Dialog confirmation", "Ok")
                 onTriggered: rebaseDialog.accept()
             },
             Kirigami.Action {
                 id: cancelExit
-                text: i18n("Cancel") + GP.Labels.spacer + GP.Labels.east
+                text: i18n("Cancel")
                 onTriggered: rebaseDialog.reject()
             }
         ]

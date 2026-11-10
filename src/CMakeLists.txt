@@ -106,3 +106,9 @@ target_link_libraries(bazzite-updater
 add_subdirectory(components)
 
 install(TARGETS bazzite-updater ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+
+if(BAZZITE_UPDATER_UI_PROBE)
+  target_sources(bazzite-updater PRIVATE ../tests/ui_probe.cpp)
+  target_compile_definitions(bazzite-updater PRIVATE BAZZITE_UPDATER_UI_PROBE)
+  target_link_libraries(bazzite-updater PRIVATE Qt6::Test)
+endif()

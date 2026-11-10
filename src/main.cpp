@@ -44,6 +44,11 @@
 
 #include "k_config.h"
 #include "utils.h"
+#ifdef BAZZITE_UPDATER_UI_PROBE
+#include "../tests/ui_probe.h"
+#include <KColorScheme>
+#include <KSharedConfig>
+#endif
 
 inline constexpr float BASE_HEIGHT = 1080.0;
 
@@ -90,21 +95,30 @@ int main(int argc, char *argv[])
     commandLine(argv, app);
 
     setup_theming();
+#ifdef BAZZITE_UPDATER_UI_PROBE
+    const QString previewScheme = qEnvironmentVariable("UPDATER_UI_PROBE_SCHEME");
+    if (!previewScheme.isEmpty()) {
+        app.setProperty("KDE_COLOR_SCHEME_PATH", previewScheme);
+        app.setPalette(KColorScheme::createApplicationPalette(KSharedConfig::openConfig(previewScheme)));
+    }
+#endif
 
     const QString FULL_APP_DOMAIN = u"io.github.rfrench3.bazzite-updater"_s;
     KLocalizedString::setApplicationDomain("bazzite-updater");
     QCoreApplication::setOrganizationName(u"UniversalBlue"_s);
 
     KAboutData aboutData(u"bazzite-updater"_s,
-                         i18n("Bazzite Updater"),
+                         i18n("Bazzite Updater KDE"),
                          QStringLiteral(BAZZITE_UPDATER_VERSION_STRING),
-                         i18n("Updating and rebasing utility for Bazzite"),
+                         i18n("Desktop-focused updating and rebasing utility for Bazzite"),
                          KAboutLicense::Unknown, // Can't directly set v2-or-later here
                          i18n("© 2025-2026 Robert French"),
-                         i18n("This application can be used through a controller or keyboard to perform various update-related system tasks!"),
-                         u"https://github.com/rfrench3/bazzite_updater"_s,
-                         u"https://github.com/rfrench3/bazzite_updater/issues"_s);
+                         i18n("An independent desktop-focused fork. Contributions are currently closed; free-software license rights are unchanged."),
+                         u"https://github.com/jheinem1/bazzite-updater-kde"_s,
+                         QString());
     aboutData.setLicense(KAboutLicense::GPL_V2, KAboutLicense::OrLaterVersions);
+    aboutData.addAuthor(u"James Heinemann"_s, i18n("Desktop-focused fork"));
+    aboutData.addAuthor(u"Robert French"_s, i18n("Original Bazzite Updater"));
     aboutData.addCredit(u"Gareth Widlansky"_s, u"Uupd integration"_s, u""_s, u"https://github.com/gerblesh"_s);
     aboutData.setDesktopFileName(FULL_APP_DOMAIN);
     KAboutData::setApplicationData(aboutData);
@@ -114,12 +128,6 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
-    engine.loadFromModule("io.github.rfrench3.bazzite_updater", u"Main"_s);
-
-    if (engine.rootObjects().isEmpty()) {
-        return EXIT_FAILURE;
-    }
-
     // For non-critical data storage
     auto sessionStorage = QQmlPropertyMap::create(&app);
     engine.rootContext()->setContextProperty(u"sessionStorage"_s, sessionStorage);
@@ -128,8 +136,18 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty(u"ApplicationVersion"_s, QStringLiteral(BAZZITE_UPDATER_VERSION_STRING));
 
+    engine.loadFromModule("io.github.rfrench3.bazzite_updater", u"Main"_s);
+
+    if (engine.rootObjects().isEmpty()) {
+        return EXIT_FAILURE;
+    }
+
     // load AppData on startup instead of on first access
     AppData::instance();
+
+#ifdef BAZZITE_UPDATER_UI_PROBE
+    startUiProbe(engine, app);
+#endif
 
     return app.exec();
 }
@@ -157,6 +175,11 @@ void commandLine(char *argv[], QCoreApplication &app)
         std::cerr << "You cannot use --update and --rollback at the same time." << std::endl;
         exit(EXIT_FAILURE);
     }
+
+#ifdef BAZZITE_UPDATER_UI_PROBE
+    std::cerr << "System commands are disabled in the UI probe build." << std::endl;
+    exit(EXIT_FAILURE);
+#endif
 
     auto cmd = QString();
 

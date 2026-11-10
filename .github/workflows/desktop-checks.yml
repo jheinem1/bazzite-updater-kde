@@ -1,0 +1,36 @@
+name: Desktop checks
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: ubuntu-latest
+    container: fedora:44
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install build and native UI dependencies
+        run: |
+          dnf install -y dnf-plugins-core git gcc-c++ ninja-build python3
+          dnf builddep -y bazzite-updater.spec
+          dnf install -y kf6-qqc2-desktop-style kf6-breeze-icons breeze-icon-theme plasma-breeze qt6-qtdeclarative
+      - name: Source contracts
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Build native application and safe UI probe
+        run: |
+          cmake -S . -B build-test -G Ninja -D_INCLUDE_SUBMODULES=ON -D_USE_XDG_CONFIG=ON -DBAZZITE_UPDATER_UI_PROBE=ON -DCMAKE_INSTALL_PREFIX="$PWD/build-test/install-root"
+          cmake --build build-test --parallel 2
+      - name: Native UI regression and screenshots
+        run: bash tests/run-ui-probe.sh "$PWD/build-test" "$PWD/evidence"
+      - name: Build production executable
+        run: |
+          cmake -S . -B build-test -DBAZZITE_UPDATER_UI_PROBE=OFF
+          cmake --build build-test --parallel 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-verification
+          path: evidence/

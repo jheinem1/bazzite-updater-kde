@@ -16,7 +16,7 @@ import io.github.rfrench3.controllable as GP
 AppPage {
     id: page
 
-    title: GP.Labels.east + GP.Labels.spacer_large + i18n("Other Utilities")
+    title: i18n("Other Utilities")
 
     drawer: consoleDrawer
     actionToggleDrawer: toggleConsole
@@ -24,7 +24,10 @@ AppPage {
     actions: [
         Kirigami.Action {
             id: toggleConsole
-            text: i18n("Toggle Console") + GP.Labels.spacer + GP.Labels.north
+            text: consoleDrawer.drawerOpen ? i18n("Hide Details") : i18n("Show Details")
+            icon.name: "utilities-terminal"
+            checkable: true
+            checked: consoleDrawer.drawerOpen
             shortcut: "F12"
             onTriggered: consoleDrawer.drawerOpen = !consoleDrawer.drawerOpen
         }
@@ -32,7 +35,7 @@ AppPage {
 
     GP.PageNavigation {
         targetScrollbar: page.scrollBar
-        active: !globalDrawer.drawerOpen && !consoleDrawer.drawerOpen
+        active: !globalDrawer.controllerNavigationActive && !consoleDrawer.drawerOpen
     }
 
     AsyncLoader {
@@ -72,7 +75,7 @@ AppPage {
                         showPassiveNotification(i18n("Rollback Started"), Kirigami.short);
                         OtherUtilsBackend.rollbackImage(function (callback) {
                             if (callback != 0) {
-                                showPassiveNotification(i18n("Rollback Failed."), Kirigami.long, i18n("Open console") + GP.Labels.spacer + GP.Labels.north, consoleDrawer.open);
+                                showPassiveNotification(i18n("Rollback Failed."), Kirigami.long, i18n("Open console"), consoleDrawer.open);
                             } else {
                                 showPassiveNotification(i18n("Rollback Succeeded!"), Kirigami.short);
                             }
@@ -113,7 +116,7 @@ AppPage {
                         OtherUtilsBackend.addToSteam(function (callback) {
                             __ran = true;
                             if (callback != 0) {
-                                showPassiveNotification(i18n("Adding Bazzite Updater to Steam Failed."), Kirigami.long, i18n("Open console") + GP.Labels.spacer + GP.Labels.north, consoleDrawer.open);
+                                showPassiveNotification(i18n("Adding Bazzite Updater to Steam Failed."), Kirigami.long, i18n("Open console"), consoleDrawer.open);
                             } else {
                                 showPassiveNotification(i18n("Adding Bazzite Updater to Steam Succeeded!"), Kirigami.short);
                             }

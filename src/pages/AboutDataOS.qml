@@ -6,11 +6,11 @@ import io.github.rfrench3.bazzite_updater
 
 FormCard.AboutPage {
     id: page
-    title: GP.Labels.east + GP.Labels.spacer_large + i18nc("About (user's OS)", "About %1", AppData.aboutDataOs.displayName)
+    title: i18nc("About (user's OS)", "About %1", AppData.aboutDataOs.displayName)
 
     GP.PageNavigation {
         targetScrollbar: page.grabScrollbar(page)
-        active: !globalDrawer.drawerOpen
+        active: !globalDrawer.controllerNavigationActive
     }
 
     function grabScrollbar(item) {

@@ -66,7 +66,7 @@ Kirigami.OverlayDrawer {
                 id: copy
 
                 Layout.fillWidth: true
-                text: i18n("Copy to Clipboard") + GP.Labels.spacer + GP.Labels.west
+                text: i18n("Copy to Clipboard")
                 onClicked: {
                     root.model.copyToClipboard(root.includeAtStart + "\n");
                     showPassiveNotification(i18n("Text Copied"), Kirigami.short);
@@ -76,7 +76,7 @@ Kirigami.OverlayDrawer {
             Button {
                 id: closeBtn
                 Layout.fillWidth: true
-                text: i18n("Close") + GP.Labels.spacer + GP.Labels.north
+                text: i18n("Close")
                 onClicked: root.close()
             }
 

@@ -20,11 +20,11 @@ AppPage {
 
     topPadding: Kirigami.Units.largeSpacing * 4
 
-    title: GP.Labels.east + GP.Labels.spacer_large + i18n("Announcements")
+    title: i18n("Announcements")
 
     GP.PageNavigation {
         targetScrollbar: page.scrollBar
-        active: !globalDrawer.drawerOpen
+        active: !globalDrawer.controllerNavigationActive
     }
 
     FC.FormCard {

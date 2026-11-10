@@ -21,6 +21,12 @@ namespace Utils
 
 void startProcess(QProcess *process, const QStringList &command)
 {
+#ifdef BAZZITE_UPDATER_UI_PROBE
+    // Regression builds must never execute system update, rebase, rollback, or reboot.
+    qWarning() << "UI probe blocked command launch" << command;
+    process->start(u"/usr/bin/false"_s);
+    return;
+#endif
     qInfo() << "> " << command.join(u" ");
     process->start(command.at(0), command.mid(1));
 }

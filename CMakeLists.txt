@@ -12,6 +12,7 @@ project(bazzite-updater VERSION ${APP_VERSION})
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(BAZZITE_UPDATER_UI_PROBE "Build the isolated UI regression probe (never enable for release packages)." OFF)
 option(_INCLUDE_SUBMODULES "Compile the git submodules alongside the normal application." OFF)
 option(_USE_XDG_CONFIG "Install config files to CMAKE_INSTALL_PREFIX/etc/xdg instead of /etc. Used for development." OFF)
 ### Install SDL3 ###

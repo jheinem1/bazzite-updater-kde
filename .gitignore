@@ -12,3 +12,8 @@ bazzite_updater.kdev4
 uupd-output.txt
 __cmake_systeminformation/
 /po/*/bazzite-updater.po~
+/build-sdk
+/build-test
+/evidence
+
+__pycache__/
