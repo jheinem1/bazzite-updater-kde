@@ -25,14 +25,14 @@ AppPage {
         if (button_down == false)
             return;
 
-        switch (buttonId) {
-        case 0: // A
-            updateButton.animateClick();
+        if (consoleDrawer.drawerOpen) {
+            consoleDrawer.handleInput(buttonId, button_down);
             return;
         }
 
-        if (consoleDrawer.drawerOpen) {
-            consoleDrawer.handleInput(buttonId, button_down);
+        switch (buttonId) {
+        case 0: // A
+            updateButton.animateClick();
             return;
         }
 
@@ -249,19 +249,5 @@ AppPage {
             return list.join('\n');
         }
 
-        Item {
-            Layout.fillHeight: true
-        }
-
-        // displays useful information in a page users usually screenshot when something goes wrong
-        QQC2.Label {
-            text: consoleDrawer.includeAtStart
-            color: systemPalette.placeholderText
-        }
-
-        SystemPalette {
-            id: systemPalette
-            colorGroup: SystemPalette.Active
-        }
     }
 }

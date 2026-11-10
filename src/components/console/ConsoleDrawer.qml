@@ -14,38 +14,50 @@ Kirigami.OverlayDrawer {
     id: root
 
     required property var model
-    default property alias extraColumnItems: columnAdditional.data
-
     property alias buttonClipboard: copy
-    property alias buttonClose: closeBtn
-
     property string includeAtStart: ""
 
     edge: Qt.BottomEdge
-
     modal: false
     drawerOpen: UserSettings.preferConsole
-
     interactiveResizeEnabled: true
-
     maximumSize: parent.height - Kirigami.Units.gridUnit * 2.5
     preferredSize: parent.height * 0.5
 
     function handleInput(buttonId, button_down) {
         if (!button_down)
             return;
-
         switch (buttonId) {
         case 2: // X
             copy.animateClick();
             break;
         case 3: // Y
-            closeBtn.animateClick();
+            root.close();
             break;
         }
     }
 
-    contentItem: RowLayout {
+    contentItem: ColumnLayout {
+        spacing: 0
+
+        ToolBar {
+            Layout.fillWidth: true
+            RowLayout {
+                anchors.fill: parent
+                Item { Layout.fillWidth: true }
+                ToolButton {
+                    id: copy
+                    objectName: "detailsCopyButton"
+                    text: i18n("Copy to Clipboard")
+                    icon.name: "edit-copy"
+                    Accessible.name: text
+                    onClicked: {
+                        root.model.copyToClipboard(root.includeAtStart + "\n");
+                        showPassiveNotification(i18n("Text Copied"), Kirigami.short);
+                    }
+                }
+            }
+        }
 
         GP.ScrollHandler {
             target: consoleView.scrollBar
@@ -53,37 +65,11 @@ Kirigami.OverlayDrawer {
 
         ConsoleView {
             id: consoleView
+            objectName: "detailsLogView"
             model: root.model
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.horizontalStretchFactor: 1
-        }
-
-        ColumnLayout {
-            Layout.alignment: Qt.AlignTop
-
-            Button {
-                id: copy
-
-                Layout.fillWidth: true
-                text: i18n("Copy to Clipboard")
-                onClicked: {
-                    root.model.copyToClipboard(root.includeAtStart + "\n");
-                    showPassiveNotification(i18n("Text Copied"), Kirigami.short);
-                }
-            }
-
-            Button {
-                id: closeBtn
-                Layout.fillWidth: true
-                text: i18n("Close")
-                onClicked: root.close()
-            }
-
-            ColumnLayout {
-                id: columnAdditional
-                Layout.alignment: Qt.AlignTop
-            }
+            Accessible.name: i18n("Update details log")
         }
     }
 }

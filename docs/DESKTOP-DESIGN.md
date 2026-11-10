@@ -15,7 +15,7 @@ This is a focused first pass, not certification of complete KDE HIG compliance.
 - Disabled actions use `trigger()` rather than emitting their signal directly, preserving their enabled guard for controller invocation.
 - Image identity comes from the booted deployment, not inherited image-info.json. The next-boot deployment is a separate role, including finalized rpm-ostree deployments and queued bootc rollbacks; download-only staged images are not called next-boot images. Missing identity remains explicit. Base distribution metadata has its own labelled section.
 - Custom images are shown accurately in Rebase Helper without inventing rebase targets or changing configured signature policies. Feature filtering stays scoped to each configured target group.
-- Details is a read-only log viewer and uses a log icon. A real embedded Konsole requires separate lifecycle and input isolation work.
+- Details is a read-only log viewer and uses a log icon. A compact toolbar puts Copy to Clipboard above full-width output; no separate Close button or visible metadata column competes with the log. The existing Hide Details toggle, F12, Escape, and controller Y dismiss it. A real embedded Konsole requires separate lifecycle and input isolation work.
 - Normal startup retains KDE's font, palette, style, and accent. Light/dark preview overrides exist only in the opt-in regression build.
 - Context properties needed by QML are initialized before loading the UI.
 

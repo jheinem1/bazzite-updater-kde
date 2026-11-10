@@ -64,6 +64,14 @@ class DesktopContract(unittest.TestCase):
         for path in (ROOT / "src/pages").rglob("*.qml"):
             self.assertNotIn('icon.name: "utilities-terminal"', path.read_text())
 
+    def test_details_layout_prioritizes_log_output(self):
+        drawer = (ROOT / "src/components/console/ConsoleDrawer.qml").read_text()
+        self.assertIn("contentItem: ColumnLayout", drawer)
+        self.assertNotIn("closeBtn", drawer)
+        self.assertNotIn("columnAdditional", drawer)
+        page = (ROOT / "src/pages/system_update/SystemUpdate.qml").read_text()
+        self.assertNotIn("text: consoleDrawer.includeAtStart", page)
+
     def test_original_license_and_policy_are_separate(self):
         self.assertTrue((ROOT / "LICENSES/GPL-2.0-or-later.txt").is_file())
         self.assertIn("not an additional license restriction", (ROOT / "CONTRIBUTING.md").read_text())

@@ -9,6 +9,7 @@
 #include "system_update.h"
 #include "utils.h"
 #include <QApplication>
+#include <QClipboard>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -234,6 +235,30 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         QTest::keyClick(window, Qt::Key_F12);
         QTest::qWait(350);
         check("F12 opens details", named("updateConsole") && named("updateConsole")->property("drawerOpen").toBool());
+        auto *detailsBackend = engine.singletonInstance<SystemUpdateBackend *>("io.github.rfrench3.bazzite_updater", "SystemUpdateBackend");
+        detailsBackend->m_console->newLine("Probe log line: <not markup>", Console::LogLevel::Info);
+        QTest::qWait(150);
+        auto *logView = qobject_cast<QQuickItem *>(named("detailsLogView"));
+        auto *copyButton = qobject_cast<QQuickItem *>(named("detailsCopyButton"));
+        check("details log uses full panel width", logView && logView->width() >= named("updateConsole")->property("width").toDouble() - 25);
+        check("copy action is above log output",
+              copyButton && logView && copyButton->mapToScene(QPointF(0, copyButton->height())).y() <= logView->mapToScene(QPointF(0, 0)).y() + 2);
+        if (copyButton)
+            QTest::mouseClick(window,
+                              Qt::LeftButton,
+                              Qt::NoModifier,
+                              copyButton->mapToScene(QPointF(copyButton->width() / 2, copyButton->height() / 2)).toPoint());
+        check("top copy action retains complete log", QApplication::clipboard()->text().contains("Probe log line: <not markup>"));
+        evaluate("root.hidePassiveNotification()");
+        evaluate("GP.Gamepad.buttonEvent(0, true)");
+        check("controller A in details cannot start an update", !appState.commandRunning());
+        evaluate("GP.Gamepad.buttonEvent(3, true)");
+        QTest::qWait(350);
+        check("controller Y closes details without a Close button", !named("updateConsole")->property("drawerOpen").toBool());
+        QTest::keyClick(window, Qt::Key_F12);
+        QTest::qWait(350);
+        check("F12 reopens details after controller close", named("updateConsole")->property("drawerOpen").toBool());
+
         screenshot("details");
         QTest::keyClick(window, Qt::Key_Escape);
         QTest::qWait(350);
