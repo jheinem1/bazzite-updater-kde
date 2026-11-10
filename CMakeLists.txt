@@ -9,6 +9,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(READ "version.txt" APP_VERSION)
 project(bazzite-updater VERSION ${APP_VERSION})
+file(READ "fork-version.txt" APP_FORK_VERSION)
+string(STRIP "${APP_FORK_VERSION}" APP_FORK_VERSION)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

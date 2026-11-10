@@ -18,8 +18,18 @@ class DesktopContract(unittest.TestCase):
         for setting in ("modal: false", "drawerOpen: true", "collapsible: false", "handleVisible: false"):
             self.assertIn(setting, main)
         self.assertNotIn("drawerOpen = false", main)
+        self.assertNotIn('i18n("Navigation")', main)
         for path in (ROOT / "src/pages").rglob("*.qml"):
             self.assertNotIn("globalDrawer.drawerOpen", path.read_text())
+
+    def test_search_and_menu_use_native_controls(self):
+        main = (ROOT / "src/pages/Main.qml").read_text()
+        self.assertIn("Kirigami.SearchField", main)
+        self.assertIn("autoAccept: false", main)
+        self.assertIn("QQC2.MenuItem { action: actionReboot }", main)
+        self.assertIn("QQC2.MenuItem { action: actionQuit }", main)
+        self.assertIn('focusSequences: [StandardKey.Find]', main)
+        self.assertIn('i18n("No matching pages")', main)
 
     def test_no_unfocused_enter_to_update(self):
         page = (ROOT / "src/pages/system_update/SystemUpdate.qml").read_text()

@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     container: fedora:44
     steps:
+      - name: Install Git for recursive checkout
+        run: dnf install -y git
       - uses: actions/checkout@v4
         with:
           submodules: recursive

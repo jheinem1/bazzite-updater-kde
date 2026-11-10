@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 
     KAboutData aboutData(u"bazzite-updater"_s,
                          i18n("Bazzite Updater KDE"),
-                         QStringLiteral(BAZZITE_UPDATER_VERSION_STRING),
+                         QStringLiteral(BAZZITE_UPDATER_FORK_VERSION_STRING),
                          i18n("Desktop-focused updating and rebasing utility for Bazzite"),
                          KAboutLicense::Unknown, // Can't directly set v2-or-later here
                          i18n("© 2025-2026 Robert French"),
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 
     engine.rootContext()->setContextProperty(u"UseFullscreen"_s, UseFullscreen);
 
-    engine.rootContext()->setContextProperty(u"ApplicationVersion"_s, QStringLiteral(BAZZITE_UPDATER_VERSION_STRING));
+    engine.rootContext()->setContextProperty(u"ApplicationVersion"_s, QStringLiteral(BAZZITE_UPDATER_FORK_VERSION_STRING));
 
     engine.loadFromModule("io.github.rfrench3.bazzite_updater", u"Main"_s);
 

@@ -59,6 +59,37 @@ StatefulApp.StatefulWindow {
                 return;
             }
 
+            if (applicationMenu.visible) {
+                if (!button_down)
+                    return;
+                switch (buttonId) {
+                case 1: // B
+                case 6: // Menu
+                    applicationMenu.close();
+                    return;
+                case 11: // D-pad up
+                case 12: // D-pad down
+                    applicationMenu.currentIndex = actionReboot.enabled
+                        ? (applicationMenu.currentIndex === 0 ? 1 : 0) : 1;
+                    return;
+                case 0: // A
+                    const item = applicationMenu.itemAt(applicationMenu.currentIndex);
+                    if (item?.enabled) {
+                        applicationMenu.close();
+                        item.action.trigger();
+                    }
+                    return;
+                }
+                return;
+            }
+            if (buttonId === 6) { // Menu
+                if (button_down) {
+                    applicationMenu.open();
+                    applicationMenu.currentIndex = actionReboot.enabled ? 0 : 1;
+                }
+                return;
+            }
+
             // this is a bad system that must be fully reworked
             if (typeof root.pageStack.currentItem.moreHandleInput === "function")
                 if (root.pageStack.currentItem.moreHandleInput(buttonId, button_down))
@@ -67,7 +98,6 @@ StatefulApp.StatefulWindow {
             switch (buttonId) {
             case 1: // B
             case 4: // view, minus
-            case 6: // pause, plus
                 if (button_down)
                     globalDrawer.controllerNavigationActive = !globalDrawer.controllerNavigationActive;
                 return;
@@ -92,12 +122,88 @@ StatefulApp.StatefulWindow {
             objectName: "navigationHeader"
             minimumHeight: preferredHeight
             maximumHeight: preferredHeight
-            Kirigami.Heading {
+
+            RowLayout {
                 anchors.fill: parent
-                leftPadding: Kirigami.Units.largeSpacing
-                verticalAlignment: Text.AlignVCenter
-                level: 2
-                text: i18n("Navigation")
+                spacing: Kirigami.Units.smallSpacing
+
+                Kirigami.SearchField {
+                    id: navigationSearch
+                    objectName: "navigationSearch"
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    placeholderText: i18n("Search…")
+                    autoAccept: false
+                    focusSequences: [StandardKey.Find]
+                    Accessible.name: i18n("Search pages and features")
+                    onAccepted: {
+                        if (text.trim().length === 0)
+                            return;
+                        globalDrawer.controllerNavigationActive = false;
+                        globalDrawer.activateFirstMatch();
+                    }
+                    Keys.onDownPressed: {
+                        globalDrawer.controllerNavigationActive = true;
+                        globalDrawer.activateFirstMatch();
+                    }
+                }
+
+                QQC2.ToolButton {
+                    id: applicationMenuButton
+                    objectName: "applicationMenuButton"
+                    text: i18n("Application Menu")
+                    icon.name: "application-menu"
+                    display: QQC2.AbstractButton.IconOnly
+                    Accessible.name: text
+                    QQC2.ToolTip.text: text
+                    QQC2.ToolTip.visible: hovered
+                    onClicked: applicationMenu.open()
+
+                    QQC2.Menu {
+                        id: applicationMenu
+                        objectName: "applicationMenu"
+                        x: applicationMenuButton.width - width
+                        y: applicationMenuButton.height
+                        QQC2.MenuItem { action: actionReboot }
+                        QQC2.MenuItem { action: actionQuit }
+                    }
+                }
+            }
+        }
+
+        readonly property string filterText: navigationSearch.text.trim().toLocaleLowerCase()
+        readonly property bool hasMatchingPages: actions.some(action => action.checkable && action.visible && action.enabled)
+
+        function matches(text, keywords) {
+            const haystack = (text + " " + keywords).toLocaleLowerCase();
+            return filterText.split(/\s+/).every(term => haystack.includes(term));
+        }
+
+        function activateFirstMatch() {
+            for (const action of actions) {
+                if (action.checkable && action.visible && action.enabled) {
+                    action.trigger();
+                    root.pageStack.currentItem.forceActiveFocus(Qt.TabFocusReason);
+                    return;
+                }
+            }
+        }
+
+        topContent: Loader {
+            active: !globalDrawer.hasMatchingPages
+            visible: active
+            height: active && item ? item.implicitHeight : 0
+            Layout.preferredHeight: height
+            Layout.maximumHeight: height
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignTop
+            sourceComponent: QQC2.Label {
+                objectName: "noSearchResults"
+                padding: Kirigami.Units.largeSpacing
+                text: i18n("No matching pages")
+                wrapMode: Text.WordWrap
+                color: Kirigami.Theme.disabledTextColor
+                Accessible.name: text
             }
         }
         modal: false
@@ -109,7 +215,7 @@ StatefulApp.StatefulWindow {
         closePolicy: QQC2.Popup.NoAutoClose
         resetMenuOnTriggered: false
 
-        // B / View / Menu changes controller focus without hiding navigation.
+        // B / View changes controller focus without hiding navigation.
         property bool controllerNavigationActive: false
 
         Behavior on width {
@@ -142,6 +248,11 @@ StatefulApp.StatefulWindow {
         width: Math.max(Kirigami.Units.gridUnit * 14, getMaxActionTextWidth() + Kirigami.Units.iconSizes.medium + (Kirigami.Units.largeSpacing * 4))
 
         Shortcut {
+            sequence: "F10"
+            onActivated: applicationMenu.open()
+        }
+
+        Shortcut {
             sequences: ["Ctrl+M"]
             context: Qt.ApplicationShortcut
             enabled: !AppDialogManager.activeDialog
@@ -152,8 +263,12 @@ StatefulApp.StatefulWindow {
             sequence: "Escape"
             context: Qt.ApplicationShortcut
             onActivated: {
-                if (AppDialogManager.activeDialog)
+                if (applicationMenu.visible)
+                    applicationMenu.close();
+                else if (AppDialogManager.activeDialog)
                     AppDialogManager.activeDialog.reject();
+                else if (navigationSearch.activeFocus && navigationSearch.text.length > 0)
+                    navigationSearch.clear();
                 else if (root.pageStack.currentItem.drawer?.drawerOpen)
                     root.pageStack.currentItem.drawer.close();
                 else
@@ -164,7 +279,7 @@ StatefulApp.StatefulWindow {
         Shortcut {
             sequences: ["Return", "Enter"]
             context: Qt.ApplicationShortcut
-            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog
+            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog && !applicationMenu.visible && !navigationSearch.activeFocus
             onActivated: {
                 globalDrawer.controllerNavigationActive = false;
                 root.pageStack.currentItem.forceActiveFocus(Qt.TabFocusReason);
@@ -174,14 +289,14 @@ StatefulApp.StatefulWindow {
         Shortcut {
             sequence: "Up"
             context: Qt.ApplicationShortcut
-            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog
+            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog && !applicationMenu.visible && !navigationSearch.activeFocus
             onActivated: globalDrawer.navigatePages(-1)
         }
 
         Shortcut {
             sequence: "Down"
             context: Qt.ApplicationShortcut
-            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog
+            enabled: globalDrawer.controllerNavigationActive && !AppDialogManager.activeDialog && !applicationMenu.visible && !navigationSearch.activeFocus
             onActivated: globalDrawer.navigatePages(1)
         }
 
@@ -193,6 +308,7 @@ StatefulApp.StatefulWindow {
             Kirigami.Action {
 
                 text: i18n("System Update")
+                visible: globalDrawer.matches(text, i18n("install software packages upgrade"))
                 icon.name: "system-software-update-symbolic"
 
                 checkable: true
@@ -205,6 +321,7 @@ StatefulApp.StatefulWindow {
             Kirigami.Action {
 
                 text: i18n("Other Utilities")
+                visible: globalDrawer.matches(text, i18n("rollback restore previous deployment steam launcher"))
                 icon.name: "applications-accessories-symbolic"
 
                 checkable: true
@@ -214,7 +331,7 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 enabled: AppConfig.ini.Rebase?.enabled === "true"
-                visible: enabled
+                visible: enabled && globalDrawer.matches(text, i18n("image channel release version drivers switch"))
 
                 text: i18n("Rebase Helper")
                 icon.name: "system-reboot-symbolic"
@@ -226,7 +343,7 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 enabled: (AppConfig.ini.General?.rssFeed ?? "") !== ""
-                visible: enabled
+                visible: enabled && globalDrawer.matches(text, i18n("news changelog release notes"))
 
                 text: i18n("Announcements")
                 icon.name: "feed-subscribe-symbolic"
@@ -238,9 +355,11 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 separator: true
+                visible: globalDrawer.filterText.length === 0
             },
             Kirigami.Action {
                 text: i18n("Settings")
+                visible: globalDrawer.matches(text, i18n("preferences fullscreen console reboot reminder"))
                 icon.name: "settings-configure-symbolic"
 
                 checkable: true
@@ -250,6 +369,7 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 text: i18nc("About (user's OS)", "About %1", AppData.aboutDataOs.displayName)
+                visible: globalDrawer.matches(text, i18n("system information hardware operating system"))
                 icon.name: "help-about-symbolic"
 
                 checkable: true
@@ -259,40 +379,13 @@ StatefulApp.StatefulWindow {
             },
             Kirigami.Action {
                 text: i18n("About Application")
+                visible: globalDrawer.matches(text, i18n("version license authors updater"))
                 icon.name: "help-about-symbolic"
 
                 checkable: true
                 QQC2.ActionGroup.group: pageSelector
 
                 onTriggered: root.pageStack.initialPage = Qt.resolvedUrl("AboutDataApp.qml")
-            },
-            Kirigami.Action {
-                separator: true
-            },
-            Kirigami.Action {
-                id: actionReboot
-                text: i18n("Reboot System")
-                icon.name: AppState.commandSucceeded ? "system-shutdown-update-symbolic" : "system-shutdown-symbolic"
-
-                enabled: !AppState.commandRunning
-
-                onTriggered: {
-                    AppDialogManager.show(rebootDialog);
-                }
-            },
-            Kirigami.Action {
-                id: actionQuit
-                text: i18n("Quit")
-                icon.name: "application-exit-symbolic"
-                shortcut: StandardKey.Quit
-                onTriggered: {
-                    // A running command is always worth warning about, only the reminder is optional.
-                    // TODO: improve logic for non-atomic systems
-                    if (AppState.commandRunning || (!AppData.ostree.onLatestDeployment() && UserSettings.showRebootReminder)) {
-                        AppDialogManager.show(exitDialog);
-                    } else
-                        Qt.quit();
-                }
             }
         ]
 
@@ -352,6 +445,37 @@ StatefulApp.StatefulWindow {
                 navigatePages(1);
                 break;
             }
+        }
+    }
+
+    Kirigami.Action {
+        id: actionReboot
+        objectName: "rebootAction"
+        tooltip: i18n("Restart the system after confirmation")
+        text: i18n("Reboot System")
+        icon.name: AppState.commandSucceeded ? "system-shutdown-update-symbolic" : "system-shutdown-symbolic"
+
+        enabled: !AppState.commandRunning
+
+        onTriggered: {
+            AppDialogManager.show(rebootDialog);
+        }
+    }
+
+    Kirigami.Action {
+        id: actionQuit
+        objectName: "quitAction"
+        tooltip: i18n("Close Bazzite Updater")
+        text: i18n("Quit")
+        icon.name: "application-exit-symbolic"
+        shortcut: StandardKey.Quit
+        onTriggered: {
+            // A running command is always worth warning about, only the reminder is optional.
+            // TODO: improve logic for non-atomic systems
+            if (AppState.commandRunning || (!AppData.ostree.onLatestDeployment() && UserSettings.showRebootReminder)) {
+                AppDialogManager.show(exitDialog);
+            } else
+                Qt.quit();
         }
     }
 

@@ -1,13 +1,14 @@
 # Verification
 
-Initial desktop fork, based on upstream `172c28adf55bb71bab0592c3b72e7c555469f6ee` (1.2.1).
+Desktop fork `1.2.1-kde.1`, based on upstream `172c28adf55bb71bab0592c3b72e7c555469f6ee` (1.2.1).
 
 ## Local checks
 
 - Built the upstream baseline and the redesigned application using the already-installed KDE 6.11 SDK on james-os (Qt 6.11.3).
-- Seven source-contract tests passed.
-- The native Qt/Kirigami probe passed 42 checks in Breeze Light and 42 in Breeze Dark. These include screenshot-save assertions, not 84 separate end-user flows.
-- Visually inspected the rendered overview, Settings, Details, narrow 840×600 window, and larger-text view. The baseline overview is 1080×720.
+- Eight source-contract tests passed.
+- The native Qt/Kirigami probe passed 61 checks in Breeze Light and 61 in Breeze Dark. These include screenshot-save assertions, not 122 separate end-user flows.
+- Visually inspected the rendered overview, search results/empty state, application menu, Settings, Details, narrow 840×600 window, and larger-text view. The baseline overview is 1080×720.
+- Search/menu checks cover Ctrl+F, Enter, Escape, F10, matching feature keywords, no-result feedback, query preservation, controller Menu/A/B, keyboard menu activation, disabled reboot skipping, and reboot confirmation.
 - Gamepad signals and connected-controller label strings were injected in the development probe. Physical gamepad hardware was not tested.
 - Added guarded-quit cancellation, keyboard Tab traversal, populated update-step rendering, rebase-page opening, and successful-state → failed-retry checks after independent review. A failed retry now clears prior completion feedback.
 - No real system update, rollback, rebase, reboot, desktop installation, or james-os integration was performed.
@@ -29,3 +30,7 @@ These are actual rendered Qt/Kirigami windows with preview fixture data, not ins
 - [Narrow desktop](screenshots/desktop-narrow.png)
 - [Larger text](screenshots/desktop-large-text.png)
 - [Update details](screenshots/desktop-details.png)
+
+- [Application menu](screenshots/application-menu.png)
+- [Search results](screenshots/search-results.png)
+- [No matching pages](screenshots/search-empty.png)

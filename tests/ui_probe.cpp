@@ -68,6 +68,56 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         check("initial page title", evaluate("root.pageStack.currentItem.title").toString() == "System Update");
         check("clean update action", named("updateAction") && named("updateAction")->property("text").toString() == "Update System and Software");
         screenshot("desktop-overview");
+        check("application commands absent from navigation",
+              evaluate("globalDrawer.actions.every(action => action !== actionReboot && action !== actionQuit)").toBool());
+        QTest::keyClick(window, Qt::Key_F, Qt::ControlModifier);
+        check("Ctrl+F focuses search", named("navigationSearch") && named("navigationSearch")->property("activeFocus").toBool());
+        for (const char c : QByteArray("rollback"))
+            QTest::keyClick(window, Qt::Key(c - 'a' + Qt::Key_A));
+        QTest::qWait(150);
+        check("feature search finds utilities", evaluate("globalDrawer.actions[1].visible && !globalDrawer.actions[0].visible").toBool());
+        QTest::keyClick(window, Qt::Key_Return);
+        QTest::qWait(200);
+        check("search result activates with Enter", evaluate("root.pageStack.currentItem.title").toString() == "Other Utilities");
+        check("search query remains after activation", named("navigationSearch")->property("text").toString() == "rollback");
+        screenshot("search-results");
+        QTest::keyClick(window, Qt::Key_F, Qt::ControlModifier);
+        for (int i = 0; i < 8; ++i)
+            QTest::keyClick(window, Qt::Key_Z);
+        QTest::qWait(150);
+        check("empty search result is explained", named("noSearchResults") && named("noSearchResults")->property("visible").toBool());
+        screenshot("search-empty");
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTest::qWait(150);
+        check("Escape clears search and restores pages",
+              named("navigationSearch")->property("text").toString().isEmpty() && evaluate("globalDrawer.actions[0].visible").toBool());
+        evaluate("globalDrawer.actions[0].trigger()");
+        QTest::keyClick(window, Qt::Key_F10);
+        QTest::qWait(250);
+        check("F10 opens application menu", named("applicationMenu") && named("applicationMenu")->property("visible").toBool());
+        check("menu anchored below hamburger",
+              evaluate("applicationMenu.y === applicationMenuButton.height && applicationMenu.x + applicationMenu.width === applicationMenuButton.width")
+                  .toBool());
+        screenshot("application-menu");
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTest::qWait(250);
+        check("Escape dismisses application menu", !named("applicationMenu")->property("visible").toBool());
+        QTest::keyClick(window, Qt::Key_F10);
+        QTest::keyClick(window, Qt::Key_Down);
+        QTest::keyClick(window, Qt::Key_Return);
+        QTest::qWait(250);
+        check("keyboard menu reboot opens confirmation", evaluate("Boolean(AppDialogManager.activeDialog)").toBool());
+        QTest::keyClick(window, Qt::Key_Escape);
+        QTest::qWait(250);
+        evaluate("GP.Gamepad.buttonEvent(6, true)");
+        QTest::qWait(250);
+        check("controller Menu opens application menu", named("applicationMenu")->property("visible").toBool());
+        evaluate("GP.Gamepad.buttonEvent(0, true)");
+        QTest::qWait(250);
+        check("controller menu reboot still requires confirmation", evaluate("Boolean(AppDialogManager.activeDialog)").toBool());
+        evaluate("GP.Gamepad.buttonEvent(1, true)");
+        QTest::qWait(250);
+        check("controller B cancels reboot confirmation", !evaluate("Boolean(AppDialogManager.activeDialog)").toBool());
 
         // Merely connecting a controller must not pollute text or change the layout.
         evaluate("GP.Labels.south = '(A)'; GP.Labels.east = '(B)'; GP.Labels.west = '(X)'; GP.Labels.north = '(Y)'");
@@ -129,10 +179,15 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         appState.setUpdateRunning(true);
         QTest::qWait(200);
         check("update action disabled while command runs", !named("updateAction")->property("enabled").toBool());
-        evaluate("globalDrawer.actions[9].trigger()");
+        evaluate("actionReboot.trigger()");
         check("disabled reboot action cannot open confirmation", !evaluate("Boolean(AppDialogManager.activeDialog)").toBool());
         screenshot("running-state");
-        evaluate("globalDrawer.actions[10].trigger()");
+        evaluate("GP.Gamepad.buttonEvent(6, true)");
+        QTest::qWait(250);
+        check("controller menu skips disabled reboot", evaluate("applicationMenu.currentIndex === 1 && !applicationMenu.itemAt(0).enabled").toBool());
+        evaluate("GP.Gamepad.buttonEvent(11, true)");
+        check("controller cannot select disabled reboot", evaluate("applicationMenu.currentIndex === 1").toBool());
+        evaluate("GP.Gamepad.buttonEvent(0, true)");
         QTest::qWait(200);
         check("quit while running opens warning", evaluate("Boolean(AppDialogManager.activeDialog)").toBool());
         check("early exit confirmation disabled", !evaluate("AppDialogManager.activeDialog.customFooterActions[0].enabled").toBool());
@@ -146,7 +201,7 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         check("failure stays visible", named("updateStatus")->property("text").toString() == "Update failed");
         screenshot("failure-state");
         evaluate("sessionStorage.updateFailed = false");
-        evaluate("globalDrawer.actions[9].trigger()");
+        evaluate("actionReboot.trigger()");
         QTest::qWait(250);
         check("reboot opens confirmation only", evaluate("Boolean(AppDialogManager.activeDialog)").toBool());
         QTest::keyClick(window, Qt::Key_Escape);

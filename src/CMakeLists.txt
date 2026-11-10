@@ -2,6 +2,8 @@
 # SPDX-FileCopyrightText: 2025-2026 Robert French <frenchrobertm@outlook.com>
 
 add_executable(bazzite-updater)
+target_compile_definitions(bazzite-updater PRIVATE
+    BAZZITE_UPDATER_FORK_VERSION_STRING="${APP_FORK_VERSION}")
 
 ecm_add_qml_module(bazzite-updater
     URI
