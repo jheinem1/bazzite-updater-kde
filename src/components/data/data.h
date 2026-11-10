@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QDateTime>
+#include <QLocale>
 #include <qcontainerfwd.h>
 #include <qguiapplication.h>
 #include <qjsengine.h>
@@ -63,19 +65,41 @@ public:
     {
         return layeredPackages;
     }
-    bool isCurrent;
+    bool isCurrent = false;
     bool getIsCurrent() const
     {
         return isCurrent;
     }
-    bool isStaged;
+    bool isStaged = false;
+    bool isPending = false;
     bool getIsStaged() const
     {
         return isStaged;
     }
+    bool present = false;
+    QString reference;
+    QString name;
+    QString repository;
+    QString tag;
+    QString digest;
+    QString version;
+    qint64 timestamp = 0;
+    Q_PROPERTY(bool present MEMBER present CONSTANT)
+    Q_PROPERTY(QString reference MEMBER reference CONSTANT)
+    Q_PROPERTY(QString name MEMBER name CONSTANT)
+    Q_PROPERTY(QString repository MEMBER repository CONSTANT)
+    Q_PROPERTY(QString tag MEMBER tag CONSTANT)
+    Q_PROPERTY(QString digest MEMBER digest CONSTANT)
+    Q_PROPERTY(QString version MEMBER version CONSTANT)
+    Q_PROPERTY(QString buildDate READ getBuildDate CONSTANT)
+    QString getBuildDate() const
+    {
+        return timestamp > 0 ? QLocale().toString(QDateTime::fromSecsSinceEpoch(timestamp).date(), QLocale::LongFormat) : QString();
+    }
     Q_PROPERTY(QStringList layeredPackages READ getLayeredPackages CONSTANT)
     Q_PROPERTY(bool isCurrent READ getIsCurrent CONSTANT)
     Q_PROPERTY(bool isStaged READ getIsStaged CONSTANT)
+    Q_PROPERTY(bool isPending MEMBER isPending CONSTANT)
     bool operator==(const OstreeDeployment &) const = default;
 };
 
@@ -92,11 +116,29 @@ public:
     }
     Q_INVOKABLE bool onLatestDeployment() const
     {
-        if (deployments.isEmpty())
-            return false;
-        return deployments.first().isCurrent;
+        return getBootedDeployment().present && !hasPendingDeployment();
     }
 
+    Q_PROPERTY(OstreeDeployment bootedDeployment READ getBootedDeployment CONSTANT)
+    Q_PROPERTY(OstreeDeployment pendingDeployment READ getPendingDeployment CONSTANT)
+    OstreeDeployment getBootedDeployment() const
+    {
+        for (const auto &deployment : deployments)
+            if (deployment.isCurrent)
+                return deployment;
+        return {};
+    }
+    OstreeDeployment getPendingDeployment() const
+    {
+        for (const auto &deployment : deployments)
+            if (deployment.isPending && !deployment.isCurrent)
+                return deployment;
+        return {};
+    }
+    Q_INVOKABLE bool hasPendingDeployment() const
+    {
+        return getPendingDeployment().present;
+    }
     static Ostree load();
     bool operator==(const Ostree &) const = default;
 };
@@ -140,6 +182,11 @@ public: // singleton methods
 
 public:
     Q_PROPERTY(Ostree ostree READ getOstree NOTIFY ostreeChanged)
+    Q_PROPERTY(bool ostreeLoading READ isOstreeLoading NOTIFY ostreeChanged)
+    bool isOstreeLoading() const
+    {
+        return ostreeStatus.loading;
+    }
     const Ostree &getOstree() const
     {
         return ostree;

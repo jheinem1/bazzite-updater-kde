@@ -159,7 +159,9 @@ AppPage {
             tags: RebaseModel.currentImage.tags,
             features: RebaseModel.currentImage.features,
             currentTag: RebaseModel.currentImage.currentTag,
-            ref: `${RebaseModel.currentImage.url}/${RebaseModel.currentImage.name}`
+            ref: `${RebaseModel.currentImage.url}/${RebaseModel.currentImage.name}`,
+            reference: RebaseModel.currentImage.reference,
+            known: RebaseModel.currentImage.known
         })
 
     title: i18n("Rebase Helper")
@@ -169,7 +171,7 @@ AppPage {
         Kirigami.Action {
             id: toggleConsole
             text: consoleDrawer.drawerOpen ? i18n("Hide Details") : i18n("Show Details")
-            icon.name: "utilities-terminal"
+            icon.name: "viewlog"
             checkable: true
             checked: consoleDrawer.drawerOpen
             shortcut: "F12"
@@ -201,8 +203,20 @@ AppPage {
                 title: i18n("Current System Image")
             }
 
+            FC.FormCard {
+                visible: !page.currentImage.known
+                FC.FormTextDelegate {
+                    objectName: "rebaseBootedImageReference"
+                    text: page.currentImage.reference || (AppData.ostreeLoading ? i18n("Detecting image…") : i18n("Unavailable"))
+                    textItem.wrapMode: Text.WrapAnywhere
+                    textItem.textFormat: Text.PlainText
+                    description: i18n("Booted image. This image is not among the configured rebase targets.")
+                }
+            }
+
             FCSystemImage {
                 id: currentImage
+                visible: page.currentImage.known
 
                 url: page.currentImage.url
                 name: page.currentImage.name
@@ -328,7 +342,7 @@ AppPage {
                 if (exit_code === 0)
                     showPassiveNotification(i18n("The rebase succeeded! Restart to apply changes."));
                 else
-                    showPassiveNotification(i18n("The rebase failed. Check the console for more information."));
+                    showPassiveNotification(i18n("The rebase failed. Open Details for the log."));
             });
         }
 

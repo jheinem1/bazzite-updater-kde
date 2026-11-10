@@ -25,7 +25,7 @@ AppPage {
         Kirigami.Action {
             id: toggleConsole
             text: consoleDrawer.drawerOpen ? i18n("Hide Details") : i18n("Show Details")
-            icon.name: "utilities-terminal"
+            icon.name: "viewlog"
             checkable: true
             checked: consoleDrawer.drawerOpen
             shortcut: "F12"
@@ -75,7 +75,7 @@ AppPage {
                         showPassiveNotification(i18n("Rollback Started"), Kirigami.short);
                         OtherUtilsBackend.rollbackImage(function (callback) {
                             if (callback != 0) {
-                                showPassiveNotification(i18n("Rollback Failed."), Kirigami.long, i18n("Open console"), consoleDrawer.open);
+                                showPassiveNotification(i18n("Rollback Failed."), Kirigami.long, i18n("Show Details"), consoleDrawer.open);
                             } else {
                                 showPassiveNotification(i18n("Rollback Succeeded!"), Kirigami.short);
                             }
@@ -92,7 +92,6 @@ AppPage {
 
             FC.FormHeader {
                 title: i18n("System Image Information")
-                visible: OtherUtilsBackend.currentImage.load_successful
             }
             FCSystemInfo {}
 
@@ -116,7 +115,7 @@ AppPage {
                         OtherUtilsBackend.addToSteam(function (callback) {
                             __ran = true;
                             if (callback != 0) {
-                                showPassiveNotification(i18n("Adding Bazzite Updater to Steam Failed."), Kirigami.long, i18n("Open console"), consoleDrawer.open);
+                                showPassiveNotification(i18n("Adding Bazzite Updater to Steam Failed."), Kirigami.long, i18n("Show Details"), consoleDrawer.open);
                             } else {
                                 showPassiveNotification(i18n("Adding Bazzite Updater to Steam Succeeded!"), Kirigami.short);
                             }

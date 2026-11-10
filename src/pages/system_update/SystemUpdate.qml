@@ -61,7 +61,7 @@ AppPage {
                         if (consoleDrawer.drawerOpen) {
                             showPassiveNotification(i18n("Update Failed."), Kirigami.short);
                         } else {
-                            showPassiveNotification(i18n("Update Failed. Check console for more details."), Kirigami.long, i18n("Open console"), () => {
+                            showPassiveNotification(i18n("Update failed. Open Details for the update log."), Kirigami.long, i18n("Show Details"), () => {
                                 toggleConsole.trigger();
                             });
                         }
@@ -75,10 +75,12 @@ AppPage {
                     sessionStorage.mainText = i18n("System Updated!");
 
                     AppData.reloadOstree(() => {
-                        if (!AppData.ostree.onLatestDeployment())
+                        if (AppData.ostree.hasPendingDeployment())
                             showPassiveNotification(i18n("You must reboot to apply changes."), Kirigami.short);
-                        else
+                        else if (AppData.ostree.bootedDeployment.present)
                             showPassiveNotification(i18n("No reboot necessary."), Kirigami.short);
+                        else
+                            showPassiveNotification(i18n("Deployment status is unavailable. Check whether a reboot is required."), Kirigami.long);
                     });
                 }, errorMessage => {
                     errorDialog.subtitle = errorMessage;
@@ -92,7 +94,7 @@ AppPage {
             id: toggleConsole
             objectName: "toggleConsoleAction"
             text: consoleDrawer.drawerOpen ? i18n("Hide Details") : i18n("Show Details")
-            icon.name: "utilities-terminal"
+            icon.name: "viewlog"
             checkable: true
             checked: consoleDrawer.drawerOpen
             shortcut: "F12"
@@ -165,9 +167,12 @@ AppPage {
 
             QQC2.Label {
                 Layout.fillWidth: true
-                wrapMode: Text.WordWrap
+                wrapMode: Text.WrapAnywhere
+                textFormat: Text.PlainText
                 text: sessionStorage.updateCompleted ? i18n("Completed in this session")
-                    : AppData.osRelease["PRETTY_NAME"] || AppData.aboutDataOs.displayName
+                    : AppData.ostree.bootedDeployment.reference
+                        ? i18n("Booted image: %1", AppData.ostree.bootedDeployment.reference)
+                        : AppData.ostreeLoading ? i18n("Detecting image…") : i18n("Booted image unavailable")
                 color: Kirigami.Theme.disabledTextColor
             }
 
@@ -231,11 +236,12 @@ AppPage {
         includeAtStart: {
             const list = ["Bazzite Updater %1".arg(ApplicationVersion)];
 
-            if (RebaseModel.currentImage.name && RebaseModel.currentImage.currentTag)
-                list.push(`${RebaseModel.currentImage.name}:${RebaseModel.currentImage.currentTag}`);
-
-            if (OtherUtilsBackend.currentImage.version)
-                list.push(OtherUtilsBackend.currentImage.version);
+            if (AppData.ostree.bootedDeployment.reference)
+                list.push(i18n("Booted image: %1", AppData.ostree.bootedDeployment.reference));
+            if (AppData.ostree.bootedDeployment.digest)
+                list.push(AppData.ostree.bootedDeployment.digest);
+            if (AppData.ostree.pendingDeployment.reference)
+                list.push(i18n("Pending image: %1", AppData.ostree.pendingDeployment.reference));
 
             if (__layeredCount !== 0)
                 list.push(i18np("%1 Layered package", "%1 Layered packages", __layeredCount));

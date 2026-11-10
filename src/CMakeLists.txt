@@ -30,6 +30,8 @@ target_sources(bazzite-updater
     ${PG_DIR}/rebase_page/rebase_model.cpp
     ${COMP_DIR}/data/data.h
     ${COMP_DIR}/data/data.cpp
+    ${COMP_DIR}/data/image_identity.cpp
+    ${COMP_DIR}/data/image_identity.h
     ${COMP_DIR}/console/console.h
     ${COMP_DIR}/console/console.cpp
     ${COMP_DIR}/kConfig/k_config.h

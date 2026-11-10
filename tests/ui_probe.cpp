@@ -4,6 +4,8 @@
 #undef QT_NO_CAST_TO_ASCII
 #include "ui_probe.h"
 #include "data.h"
+#include "k_config.h"
+#include "rebase_model.h"
 #include "system_update.h"
 #include "utils.h"
 #include <QApplication>
@@ -55,6 +57,28 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         auto *data = AppData::instance();
         data->osRelease = {{"PRETTY_NAME", "Bazzite (preview fixture)"}, {"VERSION_ID", "20261110"}};
         data->storageSpace = {1000, 430};
+        OstreeDeployment booted;
+        booted.present = true;
+        booted.isCurrent = true;
+        booted.reference = "ghcr.io/jheinem1/james-os:latest";
+        booted.repository = "ghcr.io/jheinem1/james-os";
+        booted.name = "james-os";
+        booted.tag = "latest";
+        booted.digest = "sha256:" + QString(64, '1');
+        booted.timestamp = 1794000000;
+        OstreeDeployment staged = booted;
+        staged.isCurrent = false;
+        staged.isStaged = true;
+        staged.isPending = true;
+        staged.reference = "registry.example:5000/team/other-os:testing";
+        staged.repository = "registry.example:5000/team/other-os";
+        staged.name = "other-os";
+        staged.tag = "testing";
+        staged.digest = "sha256:" + QString(64, '2');
+        const Ostree fixture{{staged, booted}};
+        data->ostree = fixture;
+        data->ostreeStatus.loading = false;
+        Q_EMIT data->ostreeChanged();
         Q_EMIT data->osReleaseChanged();
         Q_EMIT data->storageSpaceChanged();
         qInfo() << "Preview palette window" << app.palette().color(QPalette::Window).name();
@@ -102,6 +126,21 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         QTest::keyClick(window, Qt::Key_Escape);
         QTest::qWait(250);
         check("Escape dismisses application menu", !named("applicationMenu")->property("visible").toBool());
+        auto *menuButton = qobject_cast<QQuickItem *>(named("applicationMenuButton"));
+        const auto menuPoint = menuButton->mapToScene(QPointF(menuButton->width() / 2, menuButton->height() / 2)).toPoint();
+        QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, menuPoint);
+        QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, menuPoint);
+        QTest::qWait(200);
+        check("mouse press and release opens menu", named("applicationMenu")->property("visible").toBool());
+        QTest::mousePress(window, Qt::LeftButton, Qt::NoModifier, menuPoint);
+        QTest::mouseRelease(window, Qt::LeftButton, Qt::NoModifier, menuPoint);
+        QTest::qWait(200);
+        check("second mouse press and release closes menu", !named("applicationMenu")->property("visible").toBool());
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, menuPoint);
+        QTest::qWait(200);
+        QTest::mouseClick(window, Qt::LeftButton, Qt::NoModifier, QPoint(window->width() - 30, window->height() - 30));
+        QTest::qWait(200);
+        check("outside mouse click dismisses menu", !named("applicationMenu")->property("visible").toBool());
         QTest::keyClick(window, Qt::Key_F10);
         QTest::keyClick(window, Qt::Key_Down);
         QTest::keyClick(window, Qt::Key_Return);
@@ -131,11 +170,45 @@ void startUiProbe(QQmlApplicationEngine &engine, QApplication &app)
         check("A returns controller focus to page", !sidebar->property("controllerNavigationActive").toBool());
         check("controller navigation never hides sidebar", sidebar->property("drawerOpen").toBool());
         screenshot("utilities");
+        check("current image uses booted deployment, not staged or base metadata",
+              named("bootedImageReference") && named("bootedImageReference")->property("text").toString() == booted.reference);
+        check("pending image shown separately",
+              named("pendingImageReference") && named("pendingImageReference")->property("text").toString() == staged.reference);
+        check("booted and pending digests stay distinct",
+              named("bootedImageDigest")->property("text").toString() == booted.digest
+                  && named("pendingImageDigest")->property("text").toString() == staged.digest);
+        screenshot("deployment-identity");
+        data->ostree = {};
+        Q_EMIT data->ostreeChanged();
+        QTest::qWait(200);
+        check("missing booted identity is explicit", named("bootedImageReference")->property("text").toString() == "Unavailable");
+        check("missing deployment does not invent pending update",
+              !data->ostree.hasPendingDeployment() && !named("pendingImageReference")->property("visible").toBool());
+        screenshot("deployment-unavailable");
+        data->ostree = fixture;
+        Q_EMIT data->ostreeChanged();
+        QTest::qWait(200);
         evaluate("globalDrawer.actions[2].trigger()");
         QTest::qWait(400);
         check("rebase page opens with persistent sidebar",
               evaluate("root.pageStack.currentItem.title").toString() == "Rebase Helper" && sidebar->property("drawerOpen").toBool());
         screenshot("rebase");
+        check("rebase page identifies custom booted image",
+              named("rebaseBootedImageReference") && named("rebaseBootedImageReference")->property("text").toString() == booted.reference);
+        auto *rebase = engine.singletonInstance<RebaseModel *>("io.github.rfrench3.bazzite_updater", "RebaseModel");
+        const auto originalTargets = appConfig()->rebaseTargets;
+        const auto imageEntry = [](const QString &name) {
+            return QJsonObject{{"name", name}, {"tags", QJsonArray{"latest"}}, {"features", QJsonArray{"kde"}}};
+        };
+        appConfig()->rebaseTargets = {
+            QJsonObject{{"url", "ostree-unverified-registry:ghcr.io/jheinem1"}, {"images", QJsonArray{imageEntry("james-os")}}},
+            QJsonObject{{"url", "ostree-image-signed:docker://registry.example/other"}, {"images", QJsonArray{imageEntry("different-os")}}}};
+        rebase->reloadImages();
+        check("configured targets in other registry groups stay available",
+              rebase->targets.size() == 1 && rebase->targets.first().toJsonObject().value("name").toString() == "different-os");
+        check("known rebase image still uses booted identity", rebase->currentImage.toJsonObject().value("reference").toString() == booted.reference);
+        appConfig()->rebaseTargets = originalTargets;
+        rebase->reloadImages();
 
         // Walk every configured page in both directions, including boundaries.
         evaluate("globalDrawer.actions[0].trigger()");

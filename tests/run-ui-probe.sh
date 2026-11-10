@@ -12,6 +12,8 @@ export QT_QUICK_CONTROLS_STYLE=org.kde.desktop QT_STYLE_OVERRIDE=breeze
 export XDG_CURRENT_DESKTOP=KDE KDE_FULL_SESSION=true
 export XDG_CONFIG_HOME="$out/home" XDG_CONFIG_DIRS="$out/config"
 export QML_IMPORT_PATH="$build/bin${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
+"$build/bin/image-identity-test" > "$out/image-identity-tests.log" 2>&1
+cat "$out/image-identity-tests.log"
 for theme in Light Dark; do
     name=${theme,,}
     UPDATER_UI_PROBE_DIR="$out/$name" UPDATER_UI_PROBE_SCHEME="/usr/share/color-schemes/Breeze${theme}.colors" \

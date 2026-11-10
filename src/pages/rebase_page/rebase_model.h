@@ -71,16 +71,19 @@ public:
     Q_PROPERTY(Console::Model *consoleModel MEMBER m_console CONSTANT)
 
     QVariantList targets;
-    Q_PROPERTY(QVariantList targets MEMBER targets CONSTANT)
+    Q_PROPERTY(QVariantList targets MEMBER targets NOTIFY targetsChanged)
+    Q_SIGNAL void targetsChanged();
 
     QVariantList filtered;
     Q_PROPERTY(QVariantList filtered MEMBER filtered NOTIFY filteredChanged)
     Q_SIGNAL void filteredChanged();
     void updateFiltered();
 
-    // obtained from the list of rebase targets and image-info.json
+    // Booted deployment identity, optionally matched to configured rebase targets.
     QVariant currentImage;
-    Q_PROPERTY(QVariant currentImage MEMBER currentImage CONSTANT)
+    Q_PROPERTY(QVariant currentImage MEMBER currentImage NOTIFY currentImageChanged)
+    Q_SIGNAL void currentImageChanged();
+    void reloadImages();
 
     enum RebaseProgram {
         UNDEFINED,

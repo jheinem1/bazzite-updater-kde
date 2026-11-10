@@ -53,6 +53,7 @@ TextArea {
                     id: textItem
                     readonly property int __margins: 5
                     text: __setText(display, decoration)
+                    textFormat: Text.PlainText
                     font.family: "monospace"
                     font.bold: decoration === Console.LogLevel.Error || decoration === Console.LogLevel.ErrorCritical ? true : false
 

@@ -9,187 +9,152 @@ import org.kde.kirigamiaddons.formcard as FC
 
 import io.github.rfrench3.bazzite_updater
 
-Loader {
-    active: OtherUtilsBackend.currentImage.load_successful
-    visible: active
-
+FC.FormCard {
+    id: root
     Layout.fillWidth: true
+    readonly property ostreeDeployment booted: AppData.ostree.bootedDeployment
+    readonly property ostreeDeployment pending: AppData.ostree.pendingDeployment
+    readonly property string unavailable: AppData.ostreeLoading ? i18n("Detecting image…") : i18n("Unavailable")
 
-    sourceComponent: FC.FormCard {
+    FC.FormTextDelegate {
+        id: stagedImageInfo
+        visible: root.pending.present
+        text: i18n("A system deployment is pending. Reboot to use it.")
+        font.bold: true
+    }
+    FormDelegateSeparatorFixed { visible: stagedImageInfo.visible }
+
+    FC.FormTextDelegate {
+        objectName: "bootedImageReference"
+        textItem.wrapMode: Text.WrapAnywhere
+        textItem.textFormat: Text.PlainText
+        text: root.booted.reference || root.unavailable
+        description: i18n("Current Image (booted)")
+    }
+    FormDelegateSeparatorFixed { visible: root.pending.present }
+    FC.FormTextDelegate {
+        objectName: "pendingImageReference"
+        visible: root.pending.present
+        textItem.wrapMode: Text.WrapAnywhere
+        textItem.textFormat: Text.PlainText
+        text: root.pending.reference || i18n("Unavailable")
+        description: i18n("Pending Image (after reboot)")
+    }
+    FormDelegateSeparatorFixed { visible: root.booted.buildDate.length > 0 }
+    FC.FormTextDelegate {
+        visible: root.booted.buildDate.length > 0
+        text: root.booted.buildDate
+        description: i18n("Booted Deployment Build Date")
+    }
+
+    FormDelegateSeparatorFixed { visible: driverInfo.visible }
+    FC.FormTextDelegate {
+        id: driverInfo
+        visible: AppData.gpu.best !== Gpu.Drivers.UNKNOWN
+        text: {
+            switch (AppData.gpu.best) {
+            case Gpu.Drivers.BASE:
+                return i18n("The recommended drivers for your GPU are provided by the Linux kernel.");
+            case Gpu.Drivers.NVIDIA:
+                return i18n("The recommended drivers for your GPU are nvidia.");
+            case Gpu.Drivers.NVIDIA_OPEN:
+                return i18n("The recommended drivers for your GPU are nvidia-open.");
+            case Gpu.Drivers.UNSUPPORTED:
+                return i18n("Your GPU is unsupported.");
+            default:
+                return "";
+            }
+        }
+        description: i18n("Hardware recommendation; custom image names do not establish which drivers are installed.")
+    }
+
+    FormDelegateSeparatorFixed {
+        visible: layeredPackagesInfo.visible
+        below: layeredPackagesInfo.itemBelowPrev
+    }
+    FormDelegateCollapsible {
+        id: layeredPackagesInfo
+        readonly property int count: root.booted.layeredPackages.length
+        visible: count !== 0
+        text: expanded ? i18n("Close layered packages view") : i18n("View layered packages (%1)", count)
+        FC.FormTextAreaDelegate {
+            label: i18n("Layered Packages (%1):", layeredPackagesInfo.count)
+            readOnly: true
+            text: root.booted.layeredPackages.join(", ")
+            description: i18n("Layering packages is a last-resort for when there is no other way to install a package. Avoid layering packages whenever possible, as it can cause system updates to fail.")
+        }
+    }
+    FormDelegateSeparatorFixed {
+        above: layeredPackagesInfo.visible ? layeredPackagesInfo.itemAboveNext : null
+        below: detailedInfo.itemBelowPrev
+    }
+    FormDelegateCollapsible {
+        id: detailedInfo
+        text: expanded ? i18n("Hide deployment details") : i18n("Show deployment details")
         FC.FormTextDelegate {
-            id: stagedImageInfo
-            visible: !AppData.ostree.onLatestDeployment()
-            text: i18n("There is a pending system update. You must reboot to apply it.")
-            font.bold: true
+            textItem.wrapMode: Text.WrapAnywhere
+        textItem.textFormat: Text.PlainText
+            text: root.booted.repository || i18n("Unavailable")
+            description: i18n("Booted Image Repository")
         }
-
-        FormDelegateSeparatorFixed {
-            visible: stagedImageInfo.visible
-        }
-
-        FC.FormTextDelegate {
-            textItem.wrapMode: Text.WordWrap
-            text: OtherUtilsBackend.currentImage.name + ":" + OtherUtilsBackend.currentImage.branch
-            description: i18n("Current Image")
-        }
-
         FormDelegateSeparatorFixed {}
-
         FC.FormTextDelegate {
+            text: root.booted.tag || i18n("Not specified")
+            description: i18n("Booted Image Tag")
+        }
+        FormDelegateSeparatorFixed {}
+        FC.FormTextDelegate {
+            objectName: "bootedImageDigest"
+            textItem.wrapMode: Text.WrapAnywhere
+        textItem.textFormat: Text.PlainText
+            text: root.booted.digest || i18n("Unavailable")
+            description: i18n("Booted Image Digest")
+        }
+        FormDelegateSeparatorFixed {}
+        FC.FormTextDelegate {
+            text: root.booted.version || i18n("Unavailable")
+            description: i18n("Booted Deployment Version")
+        }
+        FormDelegateSeparatorFixed { visible: root.pending.present }
+        FC.FormTextDelegate {
+            objectName: "pendingImageDigest"
+            visible: root.pending.present
+            textItem.wrapMode: Text.WrapAnywhere
+        textItem.textFormat: Text.PlainText
+            text: root.pending.digest || i18n("Unavailable")
+            description: i18n("Pending Image Digest")
+        }
+        FormDelegateSeparatorFixed { visible: root.pending.present }
+        FC.FormTextDelegate {
+            visible: root.pending.present
+            text: root.pending.version || i18n("Unavailable")
+            description: i18n("Pending Deployment Version")
+        }
+    }
+
+    FormDelegateSeparatorFixed { visible: baseMetadata.visible }
+    FormDelegateCollapsible {
+        id: baseMetadata
+        visible: OtherUtilsBackend.baseImage.load_successful
+        text: i18n("Base distribution metadata")
+        FC.FormTextDelegate {
+            text: i18n("This metadata comes from the base distribution and may differ from the custom image currently running.")
             textItem.wrapMode: Text.WordWrap
-            text: OtherUtilsBackend.currentImage.datePretty["day"] + " " + OtherUtilsBackend.currentImage.datePretty["month"] + ", " + OtherUtilsBackend.currentImage.datePretty["year"]
-
-            description: i18n("Last Update")
         }
-
-        FormDelegateSeparatorFixed {
-            visible: driverInfo.visible
-        }
-
+        FormDelegateSeparatorFixed {}
         FC.FormTextDelegate {
-            id: driverInfo
-            visible: AppData.gpu.best !== Gpu.Drivers.UNKNOWN
-
-            text: {
-                switch (AppData.gpu.best) {
-                case Gpu.Drivers.BASE:
-                    return i18n("The best drivers for your GPU are provided by the Linux kernel.");
-                case Gpu.Drivers.NVIDIA:
-                    return i18n("The best drivers for your GPU are ") + "nvidia.";
-                case Gpu.Drivers.NVIDIA_OPEN:
-                    return i18n("The best drivers for your GPU are ") + "nvidia-open.";
-                case Gpu.Drivers.UNSUPPORTED:
-                    return i18n("Your GPU is unsupported.");
-                case Gpu.Drivers.UNKNOWN:
-                    return "";
-                default:
-                    return "Report to the app developer if you see this!";
-                }
-            }
-
-            readonly property int __current: {
-                // Directly check for the few images that have the legacy drivers
-                if (["bazzite-nvidia", "bazzite-gnome-nvidia"].includes(OtherUtilsBackend.currentImage.name))
-                    return Gpu.Drivers.NVIDIA;
-                else if (OtherUtilsBackend.currentImage.name.includes("nvidia"))
-                    return Gpu.Drivers.NVIDIA_OPEN;
-                else
-                    return Gpu.Drivers.BASE;
-            }
-
-            description: {
-                if (AppData.gpu.best == __current)
-                    return i18n("You have the best drivers installed.");
-
-                switch (__current) {
-                case Gpu.Drivers.BASE:
-                    return i18n("You do not have any nvidia drivers installed.");
-                case Gpu.Drivers.NVIDIA:
-                    return i18n("You currently have nvidia installed.");
-                case Gpu.Drivers.NVIDIA_OPEN:
-                    return i18n("You currently have nvidia-open installed.");
-                }
-            }
+            text: OtherUtilsBackend.baseImage.name || i18n("Unavailable")
+            description: i18n("Base Distribution Image")
         }
-
-        FormDelegateSeparatorFixed {
-            visible: layeredPackagesInfo.visible
-            below: layeredPackagesInfo.itemBelowPrev
+        FormDelegateSeparatorFixed {}
+        FC.FormTextDelegate {
+            text: OtherUtilsBackend.baseImage.branch || i18n("Unavailable")
+            description: i18n("Base Distribution Branch")
         }
-
-        FormDelegateCollapsible {
-            id: layeredPackagesInfo
-
-            readonly property ostreeDeployment currentImage: AppData.ostree.deployments.find(img => img.isCurrent) || {}
-            readonly property int count: currentImage.layeredPackages?.length || 0
-
-            visible: count !== 0
-            text: expanded ? i18n("Close layered packages view") : i18n("View layered packages (%1)", count)
-
-            FC.FormTextAreaDelegate {
-                label: i18n("Layered Packages (%1):", layeredPackagesInfo.count)
-                readOnly: true
-                text: layeredPackagesInfo.currentImage.layeredPackages?.join(", ") ?? ""
-                description: i18n("Layering packages is a last-resort for when there is no other way to install a package. Avoid layering packages whenever possible, as it can cause system updates to fail.")
-            }
-        }
-        FormDelegateSeparatorFixed {
-            above: layeredPackagesInfo.visible ? layeredPackagesInfo.itemAboveNext : null
-            below: detailedInfo.itemBelowPrev
-        }
-
-        FormDelegateCollapsible {
-            id: detailedInfo
-
-            text: expanded ? i18n("Display less information") : i18n("Display more information")
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.name || i18n("loading...")
-                description: i18n("Image")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.vendor || i18n("loading...")
-                description: i18n("Vendor")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.ref || i18n("loading...")
-                description: i18n("Ref")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.tag || i18n("loading...")
-                description: i18n("Tag")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.branch || i18n("loading...")
-                description: i18n("Branch")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.baseName || i18n("loading...")
-                description: i18n("Base Name")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.fedoraVersion || i18n("loading...")
-                description: i18n("Fedora Version")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.version || i18n("loading...")
-                description: i18n("Version")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.versionPretty || i18n("loading...")
-                description: i18n("Version (Pretty)")
-            }
-
-            FormDelegateSeparatorFixed {}
-
-            FC.FormTextDelegate {
-                text: OtherUtilsBackend.currentImage.datePretty["day"] + " " + OtherUtilsBackend.currentImage.datePretty["month"] + ", " + OtherUtilsBackend.currentImage.datePretty["year"] || i18n("loading...")
-                description: i18n("Release Date")
-            }
+        FormDelegateSeparatorFixed {}
+        FC.FormTextDelegate {
+            text: OtherUtilsBackend.baseImage.versionPretty || OtherUtilsBackend.baseImage.version || i18n("Unavailable")
+            description: i18n("Base Distribution Version")
         }
     }
 }

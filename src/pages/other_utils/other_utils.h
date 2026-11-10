@@ -75,13 +75,13 @@ public: // singleton methods
         return instancePtr;
     }
 
-    Q_PROPERTY(osImage currentImage READ currentImage CONSTANT)
+    Q_PROPERTY(osImage baseImage READ baseImage CONSTANT)
     Q_PROPERTY(Console::Model *consoleModel MEMBER m_console CONSTANT)
 
     osImage m_osImage_current;
 
 public:
-    osImage currentImage() const
+    osImage baseImage() const
     {
         return m_osImage_current;
     }

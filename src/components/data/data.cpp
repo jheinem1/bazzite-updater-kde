@@ -1,4 +1,5 @@
 #include "data.h"
+#include "image_identity.h"
 #include <qchar.h>
 #include <qcontainerfwd.h>
 #include <qjsonobject.h>
@@ -121,22 +122,23 @@ void AppData::reloadOstree(QJSValue callback)
         return;
 
     ostreeStatus.loading = true;
+    Q_EMIT ostreeChanged();
     QtConcurrent::run([]() {
         return Ostree::load();
     })
         .then(this,
               [this, callback](Ostree os) {
-                  if (os != Ostree()) {
-                      this->ostree = std::move(os);
-                      Q_EMIT ostreeChanged();
-                      this->ostreeStatus.succeeded = true;
-                  }
+                  this->ostree = std::move(os);
+                  this->ostreeStatus.succeeded = !this->ostree.deployments.isEmpty();
                   this->ostreeStatus.loading = false;
+                  Q_EMIT ostreeChanged();
                   if (callback.isCallable())
                       callback.call();
               })
         .onCanceled(this, [this, callback]() {
+            this->ostree = {};
             this->ostreeStatus.loading = false;
+            Q_EMIT ostreeChanged();
             if (callback.isCallable())
                 callback.call();
         });
@@ -168,59 +170,37 @@ QJsonObject runJson(const QString &program, const QStringList &args)
     return QJsonDocument::fromJson(proc.readAllStandardOutput()).object();
 }
 
-Ostree loadRpmOstree()
+static Ostree fromDeploymentImages(const QList<ImageIdentity::Deployment> &images)
 {
     Ostree result;
-    const QJsonObject root = runJson(u"rpm-ostree"_s, {u"status"_s, u"--json"_s});
-
-    for (const QJsonValue &v : root.value(u"deployments"_s).toArray()) {
-        const QJsonObject d = v.toObject();
-        OstreeDeployment dep;
-        dep.isCurrent = d.value(u"booted"_s).toBool();
-        dep.isStaged = d.value(u"staged"_s).toBool();
-        for (const QJsonValue &p : d.value(u"requested-packages"_s).toArray())
-            dep.layeredPackages << p.toString();
-        for (const QJsonValue &p : d.value(u"requested-local-packages"_s).toArray())
-            dep.layeredPackages << p.toString();
-        result.deployments << dep;
+    for (const auto &image : images) {
+        OstreeDeployment deployment;
+        deployment.present = true;
+        deployment.isCurrent = image.booted;
+        deployment.isStaged = image.staged;
+        deployment.isPending = image.pending;
+        deployment.layeredPackages = image.layeredPackages;
+        deployment.reference = image.reference;
+        deployment.name = image.name;
+        deployment.repository = image.repository;
+        deployment.tag = image.tag;
+        deployment.digest = image.digest;
+        deployment.version = image.version;
+        deployment.timestamp = image.timestamp;
+        result.deployments.append(deployment);
     }
-    return result;
-}
-
-Ostree loadBootc()
-{
-    Ostree result;
-
-    // TODO: bootc status needs root
-    //       Also review the aurora update script for handling this
-    //       bootc has a compatibility value which can be used to determine if bootc or rpm-ostree should be used
-    // https://github.com/get-aurora-dev/common/blob/f813004dd14804a674ea22f45dd538f0d4b56f08/system_files/shared/usr/share/ublue-os/just/update.just#L54
-    //
-    // also TODO: Recommend/enforce removing layered packages before a rebase
-    const QJsonObject status = runJson(u"bootc"_s, {u"status"_s, u"--json"_s}).value(u"status"_s).toObject();
-
-    // bootc reports up to three slots, each an object or null.
-    // Same order as rpm-ostree: staged, booted, rollback.
-    auto add = [&](const QString &key, bool current, bool staged) {
-        if (!status.value(key).isObject())
-            return;
-        OstreeDeployment dep;
-        dep.isCurrent = current;
-        dep.isStaged = staged;
-        result.deployments << dep;
-    };
-    add(u"staged"_s, false, true);
-    add(u"booted"_s, true, false);
-    add(u"rollback"_s, false, false);
     return result;
 }
 
 Ostree Ostree::load()
 {
-    if (!QStandardPaths::findExecutable(u"rpm-ostree"_s).isEmpty())
-        return loadRpmOstree();
+    if (!QStandardPaths::findExecutable(u"rpm-ostree"_s).isEmpty()) {
+        const auto result = fromDeploymentImages(ImageIdentity::fromRpmOstree(runJson(u"rpm-ostree"_s, {u"status"_s, u"--json"_s})));
+        if (!result.deployments.isEmpty())
+            return result;
+    }
     if (!QStandardPaths::findExecutable(u"bootc"_s).isEmpty())
-        return loadBootc();
+        return fromDeploymentImages(ImageIdentity::fromBootc(runJson(u"bootc"_s, {u"status"_s, u"--json"_s})));
     return {};
 }
 

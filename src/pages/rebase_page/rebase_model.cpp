@@ -3,8 +3,9 @@
 
 #include "rebase_model.h"
 #include "console.h"
+#include "data.h"
+#include "image_identity.h"
 #include "k_config.h"
-#include "other_utils.h"
 #include "utils.h"
 #include <qguiapplication.h>
 #include <qhashfunctions.h>
@@ -43,69 +44,58 @@ RebaseModel::RebaseModel()
 {
     m_console = new Console::Model(this);
 
-    for (const QVariant &item : appConfig()->rebaseTargets) {
-        auto obj = item.toJsonObject();
+    connect(appData, &AppData::ostreeChanged, this, &RebaseModel::reloadImages);
+    reloadImages();
+}
 
-        auto imgs = obj.value(KeyImages).toArray();
-        auto url = obj.value(KeyUrl).toString();
-
-        // find the current image to store its features.
-        // Incompatible images cannot be shown.
-        bool currentFound = false;
-        for (const QJsonValue &img : imgs) {
-            auto imgObj = img.toObject();
-
-            auto imgName = imgObj.value(KeyName).toString();
-            auto imgFeatures = imgObj.value(KeyFeatures).toArray();
-
-            if (otherUtilsBackend->currentImage().m_imageRef == u"%1/%2"_s.arg(url).arg(imgName)) {
-                imgObj.insert(KeyUrl, url);
-                imgObj.insert(KeyCurrentTag, otherUtilsBackend->currentImage().m_imageBranch);
-                currentFound = true;
-                currentImage = imgObj;
-                break;
+void RebaseModel::reloadImages()
+{
+    const auto booted = appData->ostree.getBootedDeployment();
+    QList<QPair<QJsonObject, int>> configured;
+    int currentGroup = -1;
+    int groupIndex = 0;
+    QJsonObject current{{KeyUrl, QString()},
+                        {KeyName, QString()},
+                        {KeyTags, QJsonArray()},
+                        {KeyFeatures, QJsonArray()},
+                        {KeyCurrentTag, QString()},
+                        {u"reference"_s, booted.reference},
+                        {u"known"_s, false}};
+    for (const QVariant &entry : appConfig()->rebaseTargets) {
+        const auto group = entry.toJsonObject();
+        const auto url = group.value(KeyUrl).toString();
+        for (const auto &image : group.value(KeyImages).toArray()) {
+            auto target = image.toObject();
+            target.insert(KeyUrl, url);
+            configured.append({target, groupIndex});
+            const auto identity = ImageIdentity::fromReference(url + u'/' + target.value(KeyName).toString());
+            if (!booted.repository.isEmpty() && identity.repository == booted.repository) {
+                current = target;
+                currentGroup = groupIndex;
+                current.insert(KeyCurrentTag, booted.tag);
+                current.insert(u"reference"_s, booted.reference);
+                current.insert(u"known"_s, true);
             }
         }
-
-        // Create a fallback image
-        if (!currentFound) {
-            QJsonObject obj;
-            auto img = otherUtilsBackend->currentImage();
-            int sep = img.m_imageRef.lastIndexOf(u'/');
-            obj.insert(KeyUrl, img.m_imageRef.left(sep));
-            obj.insert(KeyName, img.m_imageRef.mid(sep + 1));
-            obj.insert(KeyTags, QJsonArray({img.m_imageBranch}));
-            obj.insert(KeyCurrentTag, img.m_imageBranch);
-            obj.insert(KeyFeatures, QJsonArray());
-            currentImage = obj;
-        }
-
-        for (const QJsonValue &img : imgs) {
-            auto imgObj = img.toObject();
-            auto imgFeatures = imgObj.value(KeyFeatures).toArray();
-
-            if (currentFound) {
-                auto currentFeatures = currentImage.toJsonObject().value(KeyFeatures).toArray();
-
-                bool currentGnome = currentFeatures.contains(u"gnome"_s);
-                bool currentKde = currentFeatures.contains(u"kde"_s);
-                bool imgGnome = imgFeatures.contains(u"gnome"_s);
-                bool imgKde = imgFeatures.contains(u"kde"_s);
-
-                // hide gnome if kde, hide kde if gnome
-                if ((currentKde && imgGnome) || (currentGnome && imgKde))
-                    continue;
-
-                if (currentFound && img.toObject().value(u"features"_s).toArray() == currentFeatures)
-                    continue;
-            }
-
-            imgObj.insert(KeyUrl, url);
-            targets.append(imgObj);
-        }
+        ++groupIndex;
     }
-
-    filtered = targets;
+    currentImage = current;
+    targets.clear();
+    const bool known = current.value(u"known"_s).toBool();
+    const auto currentFeatures = current.value(KeyFeatures).toArray();
+    for (const auto &[target, targetGroup] : configured) {
+        const auto features = target.value(KeyFeatures).toArray();
+        if (known && targetGroup == currentGroup) {
+            if ((currentFeatures.contains(u"kde"_s) && features.contains(u"gnome"_s)) || (currentFeatures.contains(u"gnome"_s) && features.contains(u"kde"_s)))
+                continue;
+            if (features == currentFeatures)
+                continue;
+        }
+        targets.append(target);
+    }
+    Q_EMIT currentImageChanged();
+    Q_EMIT targetsChanged();
+    updateFiltered();
 }
 
 void RebaseModel::setFeatures(QVariantList features)

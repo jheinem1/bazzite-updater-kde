@@ -76,6 +76,15 @@ ecm_find_qmlmodule(org.kde.kirigamiaddons.statefulapp REQUIRED)
 
 add_subdirectory(src)
 
+if(BAZZITE_UPDATER_UI_PROBE)
+  enable_testing()
+  add_executable(image-identity-test tests/image_identity_test.cpp src/components/data/image_identity.cpp)
+  target_include_directories(image-identity-test PRIVATE src/components/data)
+  target_link_libraries(image-identity-test PRIVATE Qt6::Core)
+  set_target_properties(image-identity-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+  add_test(NAME deployment-image-parsing COMMAND image-identity-test)
+endif()
+
 # TODO: create proper tests
 # enable_testing()
 # add_subdirectory(tests)

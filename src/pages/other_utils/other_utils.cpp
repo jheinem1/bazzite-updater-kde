@@ -62,9 +62,9 @@ osImage osImage::fromJson(const QString &filePath)
             temp_month = date.toString(u"MMMM"_s);
             temp_day = date.toString(u"d"_s);
         } else {
-            temp_year = u"ERROR!"_s;
-            temp_month = u"ERROR!"_s;
-            temp_day = u"ERROR!"_s;
+            temp_year.clear();
+            temp_month.clear();
+            temp_day.clear();
         }
 
         img.m_datePretty.insert(u"year"_s, temp_year);

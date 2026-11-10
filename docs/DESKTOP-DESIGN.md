@@ -13,6 +13,9 @@ This is a focused first pass, not certification of complete KDE HIG compliance.
 - Persistent running/failure/success feedback, a named Show Details / Hide Details action, and no meaningless idle update progress bar. The separate system-drive bar is labelled and shown only when capacity is known.
 - No global Return shortcut that starts an update. Return/Space activate focused controls normally. Ctrl+F focuses search, F10 opens the application menu, F12 toggles details, Escape dismisses the menu, search, details, or dialogs, Ctrl+M selects navigation, and Ctrl+Q retains the guarded quit flow.
 - Disabled actions use `trigger()` rather than emitting their signal directly, preserving their enabled guard for controller invocation.
+- Image identity comes from the booted deployment, not inherited image-info.json. The next-boot deployment is a separate role, including finalized rpm-ostree deployments and queued bootc rollbacks; download-only staged images are not called next-boot images. Missing identity remains explicit. Base distribution metadata has its own labelled section.
+- Custom images are shown accurately in Rebase Helper without inventing rebase targets or changing configured signature policies. Feature filtering stays scoped to each configured target group.
+- Details is a read-only log viewer and uses a log icon. A real embedded Konsole requires separate lifecycle and input isolation work.
 - Normal startup retains KDE's font, palette, style, and accent. Light/dark preview overrides exist only in the opt-in regression build.
 - Context properties needed by QML are initialized before loading the UI.
 
@@ -20,6 +23,6 @@ These follow the [KDE HIG](https://develop.kde.org/hig/), particularly [layout a
 
 ## Boundaries
 
-The backend, system configuration lookup, and upstream update/rebase/rollback implementation are retained. No real system update, rebase, rollback, or reboot is performed by the UI tests. Physical-controller behavior, screen readers, right-to-left languages, Gamescope, live desktop theme changes, release packages, installation, and downstream OS integration require additional verification. Existing controller components emit a deprecation warning; migration to their newer API is separate work.
+The backend, system configuration lookup, and upstream update/rebase/rollback implementation are retained. No real system update, rebase, rollback, or reboot is performed by the UI tests. Physical-controller behavior, screen readers, right-to-left languages, Gamescope, and live desktop theme changes require additional verification. Release-package ABI, native startup, installation, and downstream image checks are recorded separately for each build. Existing controller components emit a deprecation warning; migration to their newer API is separate work.
 
 The desktop minimum is 44 × 28 Kirigami grid units. Navigation stays expanded at that minimum; this deliberately prioritizes desktop use over narrow phone layouts.

@@ -52,6 +52,18 @@ class DesktopContract(unittest.TestCase):
         self.assertIn('#ifdef BAZZITE_UPDATER_UI_PROBE', source)
         self.assertIn('process->start(u"/usr/bin/false"_s)', source)
 
+    def test_image_identity_does_not_use_inherited_base_metadata(self):
+        info = (ROOT / "src/components/customFormcards/FCSystemInfo.qml").read_text()
+        self.assertIn("AppData.ostree.bootedDeployment", info)
+        self.assertIn("AppData.ostree.pendingDeployment", info)
+        self.assertIn('i18n("Base distribution metadata")', info)
+        self.assertNotIn("OtherUtilsBackend.currentImage", info)
+        self.assertNotIn('i18n("Last Update")', info)
+
+    def test_details_does_not_impersonate_terminal(self):
+        for path in (ROOT / "src/pages").rglob("*.qml"):
+            self.assertNotIn('icon.name: "utilities-terminal"', path.read_text())
+
     def test_original_license_and_policy_are_separate(self):
         self.assertTrue((ROOT / "LICENSES/GPL-2.0-or-later.txt").is_file())
         self.assertIn("not an additional license restriction", (ROOT / "CONTRIBUTING.md").read_text())

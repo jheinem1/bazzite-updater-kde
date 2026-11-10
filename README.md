@@ -13,6 +13,9 @@ A KDE Kirigami frontend for Bazzite's existing update, rollback, and rebase tool
 - Plain button and page names, even with a controller connected.
 - Separate controller navigation state, so controller support does not depend on hiding the sidebar.
 - A compact update page with one title, a clear update button, persistent status/error feedback, and Show Details / Hide Details.
+- Actual booted-image identity from rpm-ostree/bootc, with the next-boot image shown separately. Inherited base-distribution metadata is explicitly labelled.
+- A real mouse toggle for the application menu, including outside-click dismissal.
+- A read-only Details log with an honest log-viewer icon, not a Konsole shell.
 - Native KDE styling, fonts, colors, and accent during normal use.
 - Keyboard-safe actions: Return does not start an update unless its button is focused. Ctrl+F focuses search, F10 opens the application menu, F12 toggles details, Escape dismisses search/details/dialogs, Ctrl+M switches navigation focus, and Ctrl+Q uses the normal guarded quit flow.
 
@@ -33,7 +36,7 @@ cmake --build build
 
 The controller dependency is pinned to the upstream submodule commit. `_USE_XDG_CONFIG=ON` stages configuration below the chosen prefix; it does not authorize replacing the host's system configuration. Normal application startup still prefers the distribution's trusted `/etc` and `/usr/etc` configuration.
 
-The fork identifies itself as `1.2.1-kde.1` while retaining upstream numeric build version `1.2.1`. It preserves the `bazzite-updater` executable, application ID, translation domain, and system-configuration paths for downstream compatibility. Do not install it alongside an overlapping upstream package without an explicit packaging/rollback plan. No new stable release, desktop installation, or james-os integration is implied by a successful source build.
+The fork identifies itself as `1.2.1-kde.2` while retaining upstream numeric build version `1.2.1`. It preserves the `bazzite-updater` executable, application ID, translation domain, and system-configuration paths for downstream compatibility. Do not install it alongside an overlapping upstream package without an explicit packaging/rollback plan. No new stable release, desktop installation, or james-os integration is implied by a successful source build.
 
 ## Verify
 
@@ -49,7 +52,7 @@ bash tests/run-ui-probe.sh "$PWD/build-test" "$PWD/evidence"
 
 The opt-in probe renders real Qt/Kirigami windows offscreen, checks search, application-menu placement and commands, navigation, controller-label independence, keyboard actions, dialog cancellation, disabled controls, repeated page changes, error/running states, narrow windows, and larger text. It produces JSON reports and screenshots with synthetic display data. Command execution is blocked in this build, including command-line update/rollback. **Never distribute the probe executable.** Normal builds leave `BAZZITE_UPDATER_UI_PROBE=OFF`.
 
-Source-contract tests and native UI tests are intentionally distinct from real system-update testing. Physical controllers, screen readers, RTL, Gamescope, live desktop theme changes, full backend integration, release packages, and installation remain unverified. See [verification](docs/VERIFICATION.md) for the exact tested revision and warnings.
+Source-contract tests and native UI tests are intentionally distinct from real system-update testing. Physical controllers, screen readers, RTL, Gamescope, live desktop theme changes, and full backend update integration remain unverified. Native packages and desktop startup are verified separately against the runtime recorded with each release. See [verification](docs/VERIFICATION.md) for the exact tested revision and warnings.
 
 ## Contributing and licensing
 

@@ -157,11 +157,12 @@ StatefulApp.StatefulWindow {
                     Accessible.name: text
                     QQC2.ToolTip.text: text
                     QQC2.ToolTip.visible: hovered
-                    onClicked: applicationMenu.open()
+                    onClicked: applicationMenu.visible ? applicationMenu.close() : applicationMenu.open()
 
                     QQC2.Menu {
                         id: applicationMenu
                         objectName: "applicationMenu"
+                        closePolicy: QQC2.Popup.CloseOnEscape | QQC2.Popup.CloseOnPressOutsideParent
                         x: applicationMenuButton.width - width
                         y: applicationMenuButton.height
                         QQC2.MenuItem { action: actionReboot }
@@ -249,6 +250,7 @@ StatefulApp.StatefulWindow {
 
         Shortcut {
             sequence: "F10"
+            enabled: !AppDialogManager.activeDialog && !applicationMenu.visible
             onActivated: applicationMenu.open()
         }
 
@@ -472,7 +474,7 @@ StatefulApp.StatefulWindow {
         onTriggered: {
             // A running command is always worth warning about, only the reminder is optional.
             // TODO: improve logic for non-atomic systems
-            if (AppState.commandRunning || (!AppData.ostree.onLatestDeployment() && UserSettings.showRebootReminder)) {
+            if (AppState.commandRunning || (AppData.ostree.hasPendingDeployment() && UserSettings.showRebootReminder)) {
                 AppDialogManager.show(exitDialog);
             } else
                 Qt.quit();
@@ -538,7 +540,7 @@ StatefulApp.StatefulWindow {
 
         subtitle: {
             if (!AppState.commandRunning)
-                return !AppData.ostree.onLatestDeployment() ? i18n("You must reboot to apply system updates.") : i18n("No command is running, you may exit safely.");
+                return AppData.ostree.hasPendingDeployment() ? i18n("You must reboot to apply system updates.") : i18n("No command is running, you may exit safely.");
 
             if (AppConfig.ini.Commands?.allowEarlyExit !== "true")
                 return i18n("You should not exit the application until the running command completes. If you exit early, it may break your system.");

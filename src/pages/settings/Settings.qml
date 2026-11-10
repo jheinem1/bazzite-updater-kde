@@ -70,8 +70,8 @@ FC.FormCardPage {
         FormDelegateSeparatorFixed {}
 
         FC.FormSwitchDelegate {
-            text: i18n("Default console state")
-            description: i18n("Should the console panels start opened?")
+            text: i18n("Show details by default")
+            description: i18n("Open the read-only log panels when the application starts.")
 
             checked: UserSettings.preferConsole
 
