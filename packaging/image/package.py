@@ -106,8 +106,9 @@ def main():
                     build_packages=sorted(packages),
                     build_flags=['Release', '_INCLUDE_SUBMODULES=ON', '_USE_XDG_CONFIG=ON',
                                  'BAZZITE_UPDATER_UI_PROBE=OFF'],
-                    verification=['source contracts', 'isolated native UI regression',
-                                  'clean production build', 'dynamic linking', 'offscreen startup'],
+                    verification=['source contracts', 'isolated native UI regression with synthetic configuration',
+                                  'clean production build', 'dynamic linking',
+                                  'offscreen production startup with original trusted configuration'],
                     unperformed_by_verification=['system update', 'rollback', 'rebase', 'reboot'])
     (root / 'BUILD-INFO.json').write_text(json.dumps(metadata, indent=2) + '\n')
     validate_tree(args.stage)

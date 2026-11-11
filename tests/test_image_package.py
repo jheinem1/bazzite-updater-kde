@@ -2,6 +2,7 @@
 import importlib.util
 from pathlib import Path
 import tarfile
+import shutil
 import tempfile
 import unittest
 
@@ -9,6 +10,60 @@ MODULE = Path(__file__).resolve().parents[1] / 'packaging/image/package.py'
 spec = importlib.util.spec_from_file_location('image_package', MODULE)
 package = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(package)
+
+
+probe_spec = importlib.util.spec_from_file_location('image_probe', MODULE.with_name('run_probe.py'))
+probe = importlib.util.module_from_spec(probe_spec)
+probe_spec.loader.exec_module(probe)
+
+
+class ProbeIsolationTests(unittest.TestCase):
+    def test_restores_trusted_configs_after_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = root / 'etc/bazzite-updater'
+            original.mkdir(parents=True)
+            (original / 'config.ini').write_text('trusted-original')
+            with probe.isolated_configs(root):
+                self.assertFalse(original.exists())
+            self.assertEqual((original / 'config.ini').read_text(), 'trusted-original')
+
+    def test_restores_trusted_configs_after_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = root / 'usr/etc/bazzite-updater'
+            original.mkdir(parents=True)
+            (original / 'config.ini').write_text('trusted-original')
+            with self.assertRaisesRegex(RuntimeError, 'probe failed'):
+                with probe.isolated_configs(root):
+                    raise RuntimeError('probe failed')
+            self.assertEqual((original / 'config.ini').read_text(), 'trusted-original')
+
+    def test_unexpected_write_restores_all_originals_and_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = [root / path for path in probe.TRUSTED_CONFIGS]
+            for path in paths:
+                path.mkdir(parents=True)
+                (path / 'config.ini').write_text('trusted-original')
+            with self.assertRaisesRegex(RuntimeError, 'unexpectedly wrote'):
+                with probe.isolated_configs(root) as backup:
+                    self.addCleanup(shutil.rmtree, backup, True)
+                    paths[-1].mkdir()
+                    (paths[-1] / 'config.ini').write_text('unexpected')
+            for path in paths:
+                self.assertEqual((path / 'config.ini').read_text(), 'trusted-original')
+            self.assertEqual((backup / 'unexpected-2/config.ini').read_text(), 'unexpected')
+
+    def test_restores_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            original = root / 'etc/bazzite-updater'
+            original.parent.mkdir(parents=True)
+            original.symlink_to('../usr/etc/bazzite-updater')
+            with probe.isolated_configs(root):
+                self.assertFalse(original.is_symlink())
+            self.assertEqual(str(original.readlink()), '../usr/etc/bazzite-updater')
 
 
 class PackageTests(unittest.TestCase):

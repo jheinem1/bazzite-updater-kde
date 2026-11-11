@@ -15,7 +15,10 @@ Push a new `v<FORK_VERSION>-image.<REVISION>` tag on a reviewed packaging commit
 The workflow checks out the pinned app and its pinned Controllable submodule,
 executes source contracts and isolated native UI tests, builds production in a
 fresh tree with the UI probe OFF, and checks dynamic linking and safe offscreen
-startup. Only then does it publish a prerelease with the image archive, complete
+startup. The isolated probe temporarily hides the disposable container's trusted
+updater configuration so its synthetic fixture controls test settings; every
+original is restored before production verification. This wrapper refuses to run
+outside a container and does not change the production configuration lookup. Only then does it publish a prerelease with the image archive, complete
 corresponding application source (including Controllable), BUILD-INFO.json, and
 SHA256SUMS. The metadata separately records source_commit and packaging_commit.
 Manual workflow runs and pull requests build artifacts but do not publish.

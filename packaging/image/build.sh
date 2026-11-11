@@ -25,7 +25,7 @@ cmake -S . -B "$work/probe" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -D_INCLUDE_SUBMODULES=ON -D_USE_XDG_CONFIG=ON -DBAZZITE_UPDATER_UI_PROBE=ON \
   -DCMAKE_INSTALL_PREFIX="$work/probe/install-root"
 cmake --build "$work/probe" --parallel 2
-bash tests/run-ui-probe.sh "$work/probe" "$OUTPUT_DIR/evidence"
+python3 "$packaging_root/packaging/image/run_probe.py" "$SOURCE_DIR" "$work/probe" "$OUTPUT_DIR/evidence"
 # A separate build tree prevents any test-only executable from being shipped.
 cmake -S . -B "$work/production" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/usr/lib/bazzite-updater-kde \
