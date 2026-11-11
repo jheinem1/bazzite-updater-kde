@@ -63,6 +63,7 @@ jobs:
             -v "$workspace:/workspace:rw" -w /workspace/source \
             -e BUILDER_IMAGE="$builder" \
             -e PACKAGE_REVISION="$(cat packaging/image/revision.txt)" \
+            -e HOME=/tmp/updater-builder-home \
             -e SOURCE_DIR=/workspace/source -e PACKAGING_COMMIT="$(git rev-parse HEAD)" \
             -e OUTPUT_DIR=/workspace/packaging/dist "$builder" bash -euo pipefail -c '
               mkdir -p /var/lib/alternatives "$HOME"
