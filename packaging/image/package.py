@@ -84,6 +84,12 @@ def main():
     architecture = output('uname', '-m')
     if architecture != 'x86_64':
         raise ValueError('Only x86_64 is currently supported')
+    fedora_version = os.environ['TARGET_FEDORA']
+    if not re.fullmatch(r'[0-9]+', fedora_version):
+        raise ValueError('Fedora version must be numeric')
+    actual_version = output('bash', '-c', '. /etc/os-release; echo "$VERSION_ID"')
+    if actual_version != fedora_version:
+        raise ValueError('Builder OS version differs from target')
     root = args.stage / PREFIX
     validate_tree(args.stage)
     (root / 'source-commit').write_text(commit + '\n')
@@ -94,7 +100,7 @@ def main():
     packages = output('rpm', '-qa', '--qf', '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n').splitlines()
     metadata = dict(schema_version=1, fork_version=version, source_commit=commit,
                     controllable_commit=controllable, packaging_commit=packaging_commit, package_revision=args.revision,
-                    architecture=architecture, os_id='fedora', os_version='44',
+                    architecture=architecture, os_id='fedora', os_version=fedora_version,
                     builder_image=args.builder, ui_probe=False,
                     binary_sha256=digest(root / 'bin/bazzite-updater'),
                     build_packages=sorted(packages),
@@ -107,7 +113,7 @@ def main():
     validate_tree(args.stage)
     args.destination.mkdir(parents=True, exist_ok=True)
     name = f'bazzite-updater-kde-{version}-image-{args.revision}'
-    binary = args.destination / f'{name}-fedora44-{architecture}.tar.xz'
+    binary = args.destination / f'{name}-fedora{fedora_version}-{architecture}.tar.xz'
     sources = args.destination / f'{name}-source-with-submodules.tar.xz'
     epoch = int(output('git', 'show', '-s', '--format=%ct', 'HEAD'))
     archive(args.stage, binary, epoch, [PREFIX])

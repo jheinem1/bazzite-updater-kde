@@ -5,8 +5,8 @@ separate from the desktop installer assets and never replaces existing releases.
 
 - `source-commit.txt` pins the application source. This can remain unchanged for
   a packaging-only revision, preserving the desktop launcher's source handoff.
-- `builder-image.txt` pins the Bazzite builder by digest. Fedora 44 x86_64 is the
-  only current target. Development RPMs still come from configured repositories;
+- `builder-image.txt` pins the Bazzite builder by digest. `fedora-version.txt` pins the matching
+  Fedora target (currently 45); x86_64 is the only current architecture. Development RPMs still come from configured repositories;
   the exact installed RPM list is recorded, not claimed to be fully reproducible.
 - `revision.txt` is a positive package revision. Increment it for another package
   of the same application release. Never move a published tag or replace assets.

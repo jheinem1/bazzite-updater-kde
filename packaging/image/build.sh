@@ -4,7 +4,8 @@ set -euo pipefail
 packaging_root=$(cd "$(dirname "$0")/../.." && pwd)
 : "${SOURCE_DIR:=$packaging_root}"
 : "${PACKAGING_COMMIT:=$(git -C "$packaging_root" rev-parse HEAD)}"
-export SOURCE_DIR PACKAGING_COMMIT
+TARGET_FEDORA=$(cat "$packaging_root/packaging/image/fedora-version.txt")
+export SOURCE_DIR PACKAGING_COMMIT TARGET_FEDORA
 cd "$SOURCE_DIR"
 test "$(git rev-parse HEAD)" = "$(cat "$packaging_root/packaging/image/source-commit.txt")"
 : "${BUILDER_IMAGE:?Set the immutable builder image reference}"
@@ -13,7 +14,7 @@ test "$(git rev-parse HEAD)" = "$(cat "$packaging_root/packaging/image/source-co
 [[ $BUILDER_IMAGE =~ ^ghcr.io/ublue-os/bazzite@sha256:[0-9a-f]{64}$ ]]
 [[ $PACKAGE_REVISION =~ ^[1-9][0-9]*$ ]]
 [[ $(uname -m) == x86_64 ]]
-[[ $(. /etc/os-release; echo "$VERSION_ID") == 44 ]]
+[[ $(. /etc/os-release; echo "$VERSION_ID") == "$TARGET_FEDORA" ]]
 # Do not package an unreviewed working tree or a moved submodule.
 test -z "$(git status --porcelain --untracked-files=no)"
 test -z "$(git submodule status --recursive | grep -E '^[+U-]' || true)"

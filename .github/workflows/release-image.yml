@@ -65,7 +65,8 @@ jobs:
             -e PACKAGE_REVISION="$(cat packaging/image/revision.txt)" \
             -e SOURCE_DIR=/workspace/source -e PACKAGING_COMMIT="$(git rev-parse HEAD)" \
             -e OUTPUT_DIR=/workspace/packaging/dist "$builder" bash -euo pipefail -c '
-              mkdir -p /var/lib/alternatives
+              mkdir -p /var/lib/alternatives "$HOME"
+              test "$(. /etc/os-release; echo "$VERSION_ID")" = "$(cat /workspace/packaging/packaging/image/fedora-version.txt)"
               dnf5 install -y dnf5-plugins gcc-c++ ninja-build git python3
               dnf5 --setopt="disable_excludes=*" builddep -y bazzite-updater.spec
               dnf5 install -y kf6-qqc2-desktop-style kf6-breeze-icons breeze-icon-theme plasma-breeze qt6-qtdeclarative
@@ -111,5 +112,5 @@ jobs:
           # gh release create refuses an existing release; never use --clobber.
           gh release create "$RELEASE_TAG" --verify-tag --prerelease \
             --title "Updater image package $RELEASE_TAG" \
-            --notes "Native x86_64 Fedora 44/Bazzite image package. Source, pinned builder and runtime RPM versions are recorded in BUILD-INFO.json. Production UI probe is OFF. Consumers must pin the asset SHA256 and verify startup against their final image. No real update, rollback, rebase or reboot is exercised by release tests." \
+            --notes "Native x86_64 Bazzite image package; Fedora target version is recorded in BUILD-INFO.json. Source, pinned builder and runtime RPM versions are recorded in BUILD-INFO.json. Production UI probe is OFF. Consumers must pin the asset SHA256 and verify startup against their final image. No real update, rollback, rebase or reboot is exercised by release tests." \
             *.tar.xz BUILD-INFO.json SHA256SUMS
