@@ -22,6 +22,8 @@ target_sources(bazzite-updater
     resources.qrc
     ${PG_DIR}/system_update/system_update.h
     ${PG_DIR}/system_update/system_update.cpp
+    ${PG_DIR}/system_update/update_output.h
+    ${PG_DIR}/system_update/update_output.cpp
     ${PG_DIR}/system_update/update_steps_model.h
     ${PG_DIR}/system_update/update_steps_model.cpp
     ${PG_DIR}/other_utils/other_utils.h

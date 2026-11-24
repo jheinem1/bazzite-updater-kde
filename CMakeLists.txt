@@ -83,6 +83,11 @@ if(BAZZITE_UPDATER_UI_PROBE)
   target_link_libraries(image-identity-test PRIVATE Qt6::Core)
   set_target_properties(image-identity-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
   add_test(NAME deployment-image-parsing COMMAND image-identity-test)
+  add_executable(update-output-test tests/update_output_test.cpp src/pages/system_update/update_output.cpp)
+  target_include_directories(update-output-test PRIVATE src/pages/system_update)
+  target_link_libraries(update-output-test PRIVATE Qt6::Core)
+  set_target_properties(update-output-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+  add_test(NAME updater-output-parsing COMMAND update-output-test)
 endif()
 
 # TODO: create proper tests

@@ -22,6 +22,7 @@
 #include "console.h"
 #include "k_config.h"
 #include "system_update.h"
+#include "update_output.h"
 #include "update_steps_model.h"
 #include "utils.h"
 
@@ -106,8 +107,6 @@ void SystemUpdateBackend::runUpdate(QJSValue callback = QJSValue(), QJSValue mes
         QString module = json.value(u"module"_s).toString();
         QString output = json.value(u"output"_s).toString();
 
-        QString consoleOutput = (output.isEmpty()) ? msg : output;
-
         // Parse the exit code
         UpdateStepsNS::ExitStatus status = UpdateStepsNS::ExitStatus::NO_CHANGE;
         if (const QJsonValue exitVal = json.value(u"exit_code"_s); exitVal.isDouble())
@@ -120,18 +119,11 @@ void SystemUpdateBackend::runUpdate(QJSValue callback = QJSValue(), QJSValue mes
             }
         }
 
-        {
-            int progress_current = UpdateStepsNS::ProgressNoChange;
-            int progress_total = UpdateStepsNS::ProgressNoChange;
-
-            static const QRegularExpression regex(QStringLiteral(R"(\[(\d+)/(\d+)\])"));
-            auto match = regex.match(output);
-            if (match.hasMatch()) {
-                progress_current = match.captured(1).toInt();
-                progress_total = match.captured(2).toInt();
-            }
-            m_updateStepsModel->updateData(module, progress_current, progress_total, status);
-        }
+        const auto parsed = UpdateOutput::parse(module, output, msg);
+        m_updateStepsModel->updateData(module,
+                                      parsed.progress ? parsed.progress->current : UpdateStepsNS::ProgressNoChange,
+                                      parsed.progress ? parsed.progress->total : UpdateStepsNS::ProgressNoChange,
+                                      status);
 
         using namespace Console;
         LogLevel log_level = LogLevel::Warn;
@@ -154,7 +146,7 @@ void SystemUpdateBackend::runUpdate(QJSValue callback = QJSValue(), QJSValue mes
             return;
         }
 
-        auto out = formatForConsole(consoleOutput);
+        auto out = formatForConsole(parsed.consoleText);
         if (!out.trimmed().isEmpty())
             m_console->newLine(out, log_level);
     };

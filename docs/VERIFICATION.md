@@ -25,6 +25,14 @@ The SDK environment lacks the host OS image-info file. It logs that absence. Kir
 
 No full backend suite exists upstream. Source contracts and UI state tests do not establish update correctness. Live desktop/portal theme changes, physical controllers, screen readers, RTL, and Gamescope still need validation. The default CI performs a source build, UI checks, and a separate production build; consult the exact commit's checks before treating remote verification as complete.
 
+## Upstream maintenance: November 24, 2026
+
+Reviewed upstream `2405a6daf170c7d5dd4bdcb2689980d433dcf2b3..1e507795d0a113fb4624988929b8c04302788736` (40 commits), against fork `82aba3f7838c210399b29af4045e5850b3fa149f`. Upstream's latest published release was still 1.2.1; its main branch had bumped the working version to 1.3.0.
+
+- Adapted Robert French's bootc progress handling from [`b7917be`](https://github.com/rfrench3/bazzite-updater/commit/b7917be6e4dea95a6d9b4a7153ccb51f377cb5fc): the updater progress model accepts bounded byte percentages, and the existing Details pane shows bootc's readable descriptions. Legacy text progress and the existing command/status handling remain in place. The probe includes synthetic UUPD JSON, multi-gigabyte counters, malformed input and legacy output; it does not invoke the real updater.
+- Kept the fork's existing booted/pending deployment parser and status checks. They already distinguish unknown status from “no restart needed” ([upstream #43](https://github.com/rfrench3/bazzite-updater/issues/43)) and use deployment metadata for the booted build date rather than the base distribution's date.
+- Did not import the layered-package remove/reset operations, Gamescope-specific rebase controls, QML restructuring, translation files tied to upstream UI, version bump, or dev-container changes. The fork keeps its existing KDE pages and configuration. Desktop CI already builds with Ninja (upstream #66).
+
 ## Screenshots
 
 These are actual rendered Qt/Kirigami windows with preview fixture data, not installed-app or physical-system-update captures.

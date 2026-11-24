@@ -14,6 +14,8 @@ export XDG_CONFIG_HOME="$out/home" XDG_CONFIG_DIRS="$out/config"
 export QML_IMPORT_PATH="$build/bin${QML_IMPORT_PATH:+:$QML_IMPORT_PATH}"
 "$build/bin/image-identity-test" > "$out/image-identity-tests.log" 2>&1
 cat "$out/image-identity-tests.log"
+"$build/bin/update-output-test" > "$out/update-output-tests.log" 2>&1
+cat "$out/update-output-tests.log"
 for theme in Light Dark; do
     name=${theme,,}
     UPDATER_UI_PROBE_DIR="$out/$name" UPDATER_UI_PROBE_SCHEME="/usr/share/color-schemes/Breeze${theme}.colors" \
